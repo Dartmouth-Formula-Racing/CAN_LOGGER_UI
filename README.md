@@ -1,6 +1,13 @@
 # panels-gui
 Repository for user interface program to display and analyze DFR data.
 
+To install packages needed:
+```
+pip3 install cantools
+```
+
+
+
 To run the project, go to the project in terminal and run:
 ```
 panel serve dfr_ui.py
