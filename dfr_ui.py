@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 
 pn.extension('plotly')
 pn.extension('floatpanel')
+pn.extension('tabulator')
 
 time_field = 'Time (ms)'
 current_dataframe = pd.DataFrame(columns=[time_field, 'y'])
@@ -261,6 +262,18 @@ plotly_pane = pn.pane.Plotly(figure)
 generate_plot_btn = pn.widgets.Button(name='Generate plot', height=50, align="center")
 generate_plot_btn.on_click(generate_plot)
 
+def tabulation(event):
+    column_select_choice.value
+    global current_dataframe
+    filtered_df = current_dataframe[column_select_choice.value]
+    tabulator_display.pop(0)
+    tabulator_display.append(pn.widgets.Tabulator(filtered_df))
+
+# Create a tabulator based on the data
+generate_table_btn = pn.widgets.Button(name='Refresh table', height=50, align="center")
+generate_table_btn.on_click(tabulation)
+tabulator_pane = pn.widgets.Tabulator(current_dataframe)
+
 file_selection = pn.Column(
     "Name your project and select a new .log file or an old .csv or .pkl file.\nIf you want to upload a .log file, please first select the .dbc file you would like to use.",
     pn.Row(
@@ -301,12 +314,17 @@ plot_generation = pn.Row(
     column_select_choice,
     clear_all_columns_btn,
     generate_plot_btn,
+    generate_table_btn,
     pn.layout.VSpacer(),
     height=80
 )
 
 plot_display = pn.Row(
     plotly_pane,
+)
+
+tabulator_display = pn.Row(
+    tabulator_pane
 )
 
 user_input_block = pn.Column(
@@ -316,7 +334,8 @@ user_input_block = pn.Column(
 
 layout = pn.Column(
     user_input_block,
-    plot_display
+    plot_display,
+    tabulator_display
 )
 
 layout.servable()
