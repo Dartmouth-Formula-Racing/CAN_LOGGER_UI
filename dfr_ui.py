@@ -200,7 +200,7 @@ def export_data_panel(event):
         csv_export_selection[-1].pop(1)
     
 def import_data_panel(event):
-    layout.append(pn.layout.FloatPanel(file_selection, name='Import Data', height=400, width=500, contained=False, position="center"))
+    layout.append(pn.layout.FloatPanel(file_selection, name='Import Data', height=400, width=500, contained=False, position="center", theme="#00693e"))
     project_name_input_text.placeholder = "Project Name..."
     dbc_file_input_text.placeholder = root_path
     log_file_input_text.placeholder = root_path
