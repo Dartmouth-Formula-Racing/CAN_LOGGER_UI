@@ -91,7 +91,6 @@ def graphing():
 
     # Update layout properties
     fig.update_layout(
-        title_text="multiple y-axes example",
         width=800,
     )
 
@@ -252,7 +251,7 @@ def generate_plot(event):
 # Create an empty plot using hvplot
 figure = graphing()
 
-plotly_pane = pn.pane.Plotly(figure)
+plotly_pane = pn.pane.Plotly(figure, sizing_mode="stretch_both")
 
 generate_plot_btn = pn.widgets.Button(name='Generate plot', height=50, align="center")
 generate_plot_btn.on_click(generate_plot)
@@ -318,6 +317,7 @@ plot_generation = pn.Row(
 
 plot_display = pn.Row(
     plotly_pane,
+    sizing_mode="stretch_both"
 )
 
 tabulator_display = pn.Row(
