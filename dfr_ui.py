@@ -20,13 +20,8 @@ csv_file_path = ''
 project_options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
 current_project_name = ''
 
-pn.extension(template='fast')
-
 Tk().withdraw()
 root_path = os.path.expanduser("~")
-
-pn.state.template.title = 'Dartmouth Formula Racing CAN Explorer'
-
 
 def graphing():
     # df: csv data dataframe
@@ -265,14 +260,16 @@ generate_plot_btn.on_click(generate_plot)
 def tabulation(event):
     column_select_choice.value
     global current_dataframe
+    final_filter = column_select_choice.value
+    final_filter.append(time_field)
     filtered_df = current_dataframe[column_select_choice.value]
     tabulator_display.pop(0)
-    tabulator_display.append(pn.widgets.Tabulator(filtered_df))
+    tabulator_display.append(pn.widgets.Tabulator(filtered_df, show_index = False))
 
 # Create a tabulator based on the data
 generate_table_btn = pn.widgets.Button(name='Refresh table', height=50, align="center")
 generate_table_btn.on_click(tabulation)
-tabulator_pane = pn.widgets.Tabulator(current_dataframe)
+tabulator_pane = pn.widgets.Tabulator(current_dataframe, show_index = False)
 
 file_selection = pn.Column(
     "Name your project and select a new .log file or an old .csv or .pkl file.\nIf you want to upload a .log file, please first select the .dbc file you would like to use.",
@@ -333,9 +330,15 @@ user_input_block = pn.Column(
 )
 
 layout = pn.Column(
-    user_input_block,
-    plot_display,
-    tabulator_display
+    user_input_block
 )
 
-layout.servable()
+template = pn.template.FastGridTemplate(
+    title="DFR CAN UI"
+)
+
+template.main[:4, 0:4] = layout
+template.main[:4, 4:10] = plot_display
+template.main[4:7, 0:10] = tabulator_display
+
+template.servable()
