@@ -347,11 +347,12 @@ layout = pn.Column(
 template = pn.template.FastGridTemplate(
     title="DFR CAN UI",
     logo=f"data:image/jpeg;base64,{encoded_string}",
-    accent="#00693e"
+    accent="#00693e",
+    background_color="#f3f0e4"
 )
 
 template.main[:2, 0:12] = layout
 template.main[2:6, 0:12] = plot_display
-template.main[6:9, 0:12] = tabulator_display
+template.main[6:7, 0:12] = tabulator_display
 
 template.servable()
