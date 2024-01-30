@@ -5,6 +5,7 @@ import CANverter as canvtr
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import Tk
 import plotly.graph_objects as go
+import base64
 
 
 pn.extension('plotly')
@@ -22,6 +23,9 @@ current_project_name = ''
 
 Tk().withdraw()
 root_path = os.path.expanduser("~")
+
+with open("dfr.jpeg","rb") as image_file:
+    encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
 
 def graphing():
     # df: csv data dataframe
@@ -92,6 +96,13 @@ def graphing():
     # Update layout properties
     fig.update_layout(
         width=800,
+        legend=dict(
+            orientation='h',
+            yanchor='bottom',
+            y=1.02,
+            xanchor='left',
+            x=0.1
+        )
     )
 
     return fig
@@ -334,11 +345,13 @@ layout = pn.Column(
 )
 
 template = pn.template.FastGridTemplate(
-    title="DFR CAN UI"
+    title="DFR CAN UI",
+    logo=f"data:image/jpeg;base64,{encoded_string}",
+    accent="#00693e"
 )
 
-template.main[:4, 0:4] = layout
-template.main[:4, 4:10] = plot_display
-template.main[4:7, 0:10] = tabulator_display
+template.main[:2, 0:12] = layout
+template.main[2:6, 0:12] = plot_display
+template.main[6:9, 0:12] = tabulator_display
 
 template.servable()
