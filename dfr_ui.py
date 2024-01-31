@@ -7,6 +7,7 @@ from tkinter import Tk
 import plotly.graph_objects as go
 import base64
 import traceback
+import copy
 
 pn.extension('plotly')
 pn.extension('floatpanel')
@@ -306,11 +307,10 @@ generate_plot_btn.on_click(generate_plot)
 
 
 def tabulation(event):
-    column_select_choice.value
     global current_dataframe
-    final_filter = column_select_choice.value
+    final_filter = column_select_choice.value.copy()
     final_filter.append(time_field)
-    filtered_df = current_dataframe[column_select_choice.value]
+    filtered_df = current_dataframe[final_filter]
     tabulator_display.pop(0)
     tabulator_display.append(pn.widgets.Tabulator(filtered_df, show_index = False))
 
