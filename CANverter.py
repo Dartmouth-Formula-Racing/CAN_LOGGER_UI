@@ -105,10 +105,12 @@ class CANverter():
             
             averagedValuesList = [np.nan] * len(self.signalList) #Avg values if signal freq > 1000 Hz
             currentValuesList = [ [] for _ in range(len(self.signalList)) ] #Current decoded values list
-            
-            (lastTimestamp, identifier, data) = self.get_encoded_pattern(logFile.readline()) #Get first line
-            self.get_decoded_values(identifier, data, currentValuesList) #Decode first line
-
+            try:
+                (lastTimestamp, identifier, data) = self.get_encoded_pattern(logFile.readline()) #Get first line
+                self.get_decoded_values(identifier, data, currentValuesList) #Decode first line
+            except:
+                lastTimestamp = -1 #First line was invalid
+                
             for row in logFile:
                 try:
                     (timestamp, identifier, data) = self.get_encoded_pattern(row) #get line timestamp
