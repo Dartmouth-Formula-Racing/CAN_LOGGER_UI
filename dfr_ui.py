@@ -6,7 +6,7 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import Tk
 import plotly.graph_objects as go
 import base64
-
+import traceback
 
 pn.extension('plotly')
 pn.extension('floatpanel')
@@ -51,7 +51,7 @@ def graphing():
         i=i+1
     
     fig.update_layout(
-        xaxis=dict(domain=[0.2, 0.8], title=time_field)
+        xaxis=dict(domain=[0.2, 0.8], title=time_field),
     )
 
     signal_num = len(ys)
@@ -168,6 +168,7 @@ def import_data_callback(event):
                 raise Exception
             file_selection[-1][-1]= ("Importing Successful!")
     except Exception as e:
+        traceback.print_exc()
         file_selection[-1][-1]= ("Importing Failed!")
 
 def csv_file_picker_callback(event):
@@ -195,12 +196,12 @@ def save_csv_callback(event):
         
 def export_data_panel(event):
     csv_export_text.placeholder = root_path
-    layout.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=300, width=500, contained=False, position="center"))
+    user_input_block.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=300, width=500, contained=False, position="center"))
     if len(csv_export_selection[-1]) > 1:
         csv_export_selection[-1].pop(1)
     
 def import_data_panel(event):
-    layout.append(pn.layout.FloatPanel(file_selection, name='Import Data', height=400, width=500, contained=False, position="center", theme="#00693e"))
+    user_input_block.append(pn.layout.FloatPanel(file_selection, name='Import Data', height=400, width=500, contained=False, position="center", theme="#00693e"))
     project_name_input_text.placeholder = "Project Name..."
     dbc_file_input_text.placeholder = root_path
     log_file_input_text.placeholder = root_path
@@ -336,23 +337,23 @@ tabulator_display = pn.Row(
 )
 
 user_input_block = pn.Column(
+    pn.layout.VSpacer(),
     export_selection,
     plot_generation,
-)
-
-layout = pn.Column(
-    user_input_block
+    pn.layout.VSpacer(),
+    max_height=200,
 )
 
 template = pn.template.FastGridTemplate(
     title="DFR CAN UI",
     logo=f"data:image/jpeg;base64,{encoded_string}",
     accent="#00693e",
-    background_color="#f3f0e4"
-)
+    background_color="#f3f0e4",
+    row_height = 50
+    )
 
-template.main[:2, 0:12] = layout
-template.main[2:6, 0:12] = plot_display
-template.main[6:7, 0:12] = tabulator_display
+template.main[:6, 0:12] = user_input_block
+template.main[6:18, 0:12] = plot_display
+template.main[18:23, 0:12] = tabulator_display
 
 template.servable()
