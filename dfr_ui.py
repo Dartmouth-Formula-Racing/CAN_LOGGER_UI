@@ -27,28 +27,64 @@ root_path = os.path.expanduser("~")
 with open("dfr.jpeg","rb") as image_file:
     encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
 
+comb_axes_switch = pn.widgets.Switch(name='Switch')
+
 def graphing():
     # df: csv data dataframe
     # y: list of attributes from csv we want to graph (dataframe headers)
 
     # Only handles up to 4...
     global current_dataframe
+    
     ys = column_select_choice.value
-
+    switch = comb_axes_switch.value
     fig = go.Figure()
 
     if len(ys) == 0:
         return fig
 
-    i=1
-    for column_name in ys:
-        fig.add_trace(go.Scatter(
-            x=current_dataframe[time_field],
-            y=current_dataframe[column_name],
-            name=column_name,
-            yaxis=f"y{i}"
-        ))
-        i=i+1
+    if switch:
+        grouped_plots = {}
+        y_labels = []
+        for column_name in ys:
+            units = column_name.split('(', 1)[1].split(')', 1)[0].strip()
+
+            in_front = column_name.split('(')[0].split()[-1].strip()
+            y_label = f"{in_front} ({units})"
+            
+            if y_label not in y_labels:
+                y_labels.append(y_label)
+
+            if units in grouped_plots:
+                grouped_plots[units].append(column_name)
+            else:
+                grouped_plots[units] = [column_name] 
+        
+        ys = y_labels
+
+        i=1
+        for units in grouped_plots:
+            for column_name in grouped_plots[units]:
+                fig.add_trace(go.Scatter(
+                    x=current_dataframe[time_field],
+                    y=current_dataframe[column_name],
+                    name=column_name,
+                    yaxis=f"y{i}"
+                )) 
+            i=i+1   
+        signal_num = len(grouped_plots)
+
+    else:
+        i=1
+        for column_name in ys:
+            fig.add_trace(go.Scatter(
+                x=current_dataframe[time_field],
+                y=current_dataframe[column_name],
+                name=column_name,
+                yaxis=f"y{i}"
+            ))
+            i=i+1
+        signal_num = len(ys)
     
     fig.update_layout(
         xaxis=dict(domain=[0.2, 0.8], title=time_field)
@@ -267,6 +303,7 @@ plotly_pane = pn.pane.Plotly(figure, sizing_mode="stretch_both")
 generate_plot_btn = pn.widgets.Button(name='Generate plot', height=50, align="center")
 generate_plot_btn.on_click(generate_plot)
 
+
 def tabulation(event):
     column_select_choice.value
     global current_dataframe
@@ -326,9 +363,17 @@ plot_generation = pn.Row(
     height=80
 )
 
-plot_display = pn.Row(
+comb_axes_text = pn.widgets.StaticText(name='Combine Y-Axes that have the same units', value='')
+comb_axes_tt = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button above to implement changes")
+comb_axes = pn.Row(
+    comb_axes_text,
+    comb_axes_switch,
+    comb_axes_tt
+)
+
+plot_display = pn.Column(
     plotly_pane,
-    sizing_mode="stretch_both"
+    comb_axes,
 )
 
 tabulator_display = pn.Row(
