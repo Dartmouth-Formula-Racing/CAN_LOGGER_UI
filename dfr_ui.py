@@ -14,12 +14,17 @@ pn.extension('floatpanel')
 pn.extension('tabulator')
 
 time_field = 'Time (ms)'
+proj_dir = "./PROJECTS/"
 current_dataframe = pd.DataFrame(columns=[time_field, 'y'])
 canverter = None
 log_file_path = ''
 dbc_file_path = ''
 csv_file_path = ''
-project_options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
+
+if not os.path.isdir(proj_dir):
+    os.mkdir(proj_dir)
+
+project_options = [proj.split(".")[0] for proj in os.listdir(proj_dir)]
 current_project_name = ''
 
 Tk().withdraw()
@@ -63,28 +68,24 @@ def graphing():
         
         ys = y_labels
 
-        i=1
-        for units in grouped_plots:
+        for i, units in enumerate(grouped_plots):
             for column_name in grouped_plots[units]:
                 fig.add_trace(go.Scatter(
                     x=current_dataframe[time_field],
                     y=current_dataframe[column_name],
                     name=column_name,
-                    yaxis=f"y{i}"
-                )) 
-            i=i+1   
+                    yaxis=f"y{i+1}"
+                ))   
         signal_num = len(grouped_plots)
 
     else:
-        i=1
-        for column_name in ys:
+        for i, column_name in enumerate(ys):
             fig.add_trace(go.Scatter(
                 x=current_dataframe[time_field],
                 y=current_dataframe[column_name],
                 name=column_name,
-                yaxis=f"y{i}"
+                yaxis=f"y{i+1}"
             ))
-            i=i+1
         signal_num = len(ys)
     
     fig.update_layout(
@@ -147,10 +148,11 @@ def graphing():
 def build_current_dataframe(selected_file_path, project_name):
     global current_dataframe
     global canverter
+    global proj_dir
 
     current_dataframe = canverter.log_to_dataframe(selected_file_path)
     current_dataframe = current_dataframe.sort_values(by=time_field)
-    current_dataframe.to_pickle("./PROJECTS/"+project_name+".project")
+    current_dataframe.to_pickle(proj_dir+project_name+".project")
 
     interpolate_dataframe()
     
@@ -181,6 +183,7 @@ def import_data_callback(event):
     global canverter
     global current_dataframe
     global log_file_path
+    global proj_dir
     if len(file_selection[-1]) > 1:
         file_selection[-1].pop(1)
     file_selection[-1].append("Importing Data...")
@@ -195,7 +198,7 @@ def import_data_callback(event):
                     print('Handle case later')
                 else:
                     build_current_dataframe(log_file_path, project_name)
-                    project_name_select.options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
+                    project_name_select.options = [proj.split(".")[0] for proj in os.listdir(proj_dir)]
                     project_name_input_text.value = ""
             elif (file_extension == 'pkl'):
                 print('pickle')
@@ -217,6 +220,7 @@ def save_csv_callback(event):
     global current_dataframe
     global csv_file_path
     global current_project_name
+    global proj_dir
     csv_file_path = csv_export_text.value
     if len(csv_export_selection[-1]) > 1:
         csv_export_selection[-1].pop(1)
@@ -225,7 +229,7 @@ def save_csv_callback(event):
         if interpolate_csv_btn.value:
             current_dataframe.to_csv(csv_file_path)
         else:
-            pd.read_pickle("./PROJECTS/"+current_project_name+".project").to_csv(csv_file_path)
+            pd.read_pickle(proj_dir+current_project_name+".project").to_csv(csv_file_path)
         csv_file_path = ''
         csv_export_selection[-1][-1]= ("Export Successful!")
     except:
@@ -274,15 +278,19 @@ project_name_select = pn.widgets.Select(name='Select Project',options=project_op
 def update_project(project_name_select):
     global current_dataframe
     global current_project_name
+    global proj_dir
     column_select_choice.name = "Variables for "+project_name_select
     column_select_choice.value = []
-    current_dataframe = pd.read_pickle("./PROJECTS/"+project_name_select+".project")
+    current_dataframe = pd.read_pickle(proj_dir+project_name_select+".project")
      # Interpolate all columns linearly based on the "time" column
     interpolate_dataframe()
     current_project_name = project_name_select
-  
-column_select_choice = pn.widgets.MultiChoice(name="Variables for "+project_name_select.value, value=[],
+
+# column_select_choice = pn.widgets.MultiChoice(name="Variables for "+project_name_select.value, value=[],
+#     options=[], align="center")
+column_select_choice = pn.widgets.MultiChoice(name="Please create/select a project.", value=[],
     options=[], align="center")
+
 
 def clear_all_columns(event):
     column_select_choice.value = []
