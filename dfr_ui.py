@@ -315,8 +315,7 @@ def tabulation(event):
     tabulator_display.append(pn.widgets.Tabulator(filtered_df, show_index = False))
 
 # Create a tabulator based on the data
-generate_table_btn = pn.widgets.Button(name='Refresh table', height=50, align="center")
-generate_table_btn.on_click(tabulation)
+generate_plot_btn.on_click(tabulation)
 tabulator_pane = pn.widgets.Tabulator(current_dataframe, show_index = False)
 
 file_selection = pn.Column(
@@ -359,13 +358,12 @@ plot_generation = pn.Row(
     column_select_choice,
     clear_all_columns_btn,
     generate_plot_btn,
-    generate_table_btn,
     pn.layout.VSpacer(),
     height=80
 )
 
 comb_axes_text = pn.widgets.StaticText(name='Combine Y-Axes that have the same units', value='')
-comb_axes_tt = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button above to implement changes")
+comb_axes_tt = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button below to implement changes")
 comb_axes = pn.Row(
     comb_axes_text,
     comb_axes_switch,
@@ -374,7 +372,6 @@ comb_axes = pn.Row(
 
 plot_display = pn.Column(
     plotly_pane,
-    comb_axes,
 )
 
 tabulator_display = pn.Row(
@@ -384,6 +381,7 @@ tabulator_display = pn.Row(
 user_input_block = pn.Column(
     pn.layout.VSpacer(),
     export_selection,
+    comb_axes,
     plot_generation,
     pn.layout.VSpacer(),
     max_height=200,
