@@ -3,3 +3,6 @@ __pycache__/
 .vscode/
 can-ui/
 .ipynb_checkpoints/
+.DS_Store
+*.ipynb
+*.csv
