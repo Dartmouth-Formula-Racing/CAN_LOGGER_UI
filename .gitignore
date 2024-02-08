@@ -6,3 +6,4 @@ can-ui/
 .DS_Store
 *.ipynb
 *.csv
+test_messages/
