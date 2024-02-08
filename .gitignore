@@ -1,2 +1,5 @@
-./PROJECTS/*
-./__pycache__
+PROJECTS/
+__pycache__/
+.vscode/
+can-ui/
+.ipynb_checkpoints/

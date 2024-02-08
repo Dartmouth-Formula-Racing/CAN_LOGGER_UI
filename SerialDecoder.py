@@ -2,7 +2,8 @@ import serial
 import os
 import traceback
 import CANverter
-from bokeh.plotting import figure, curdoc
+from bokeh.plotting import figure as bokeh_figure
+from bokeh.plotting import curdoc
 from bokeh.driving import linear
 from bokeh.models import ColumnDataSource
 import threading
@@ -22,23 +23,23 @@ print("Connecting to " + port_name + "...")
 ser = serial.Serial(port=port_name, baudrate=12000000, timeout=1, xonxoff=False, rtscts=False, dsrdtr=True)        
 canverter = CANverter.CANverter("./dbc/test.dbc")
 
-def validate_message(message):
-    validated_message = message.decode("utf-8")[:-1]
-    return validated_message
+def format_byte_message(message):
+    formatted_msg = message.decode("utf-8")[:-1]
+    return formatted_msg
 
 df = pd.DataFrame()
 
 while True:
     try:
         message = ser.readline()
-        validated_message = validate_message(message)
+        validated_message = format_byte_message(message)
         if validated_message != "":
             df = canverter.decode_message_stream(validated_message)
             break
     except:
         pass
 
-p = figure(width=1400)
+p = bokeh_figure(width=1400)
 source = ColumnDataSource(df)
 
 selected_cols = ["X Axis Acceleration (g)", "Y Axis Acceleration (g)", "Z Axis Acceleration (g)",
@@ -69,7 +70,7 @@ def read_data():
     try:
         while True:
             message = ser.readline() 
-            validated_message = validate_message(message)
+            validated_message = format_byte_message(message)
             if validated_message != "":
                 try: 
                     updatedData= canverter.decode_message_stream(validated_message)

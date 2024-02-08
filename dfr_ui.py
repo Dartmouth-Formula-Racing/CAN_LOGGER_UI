@@ -8,6 +8,15 @@ import plotly.graph_objects as go
 import base64
 import traceback
 import copy
+import threading
+import serial
+import CANverter
+from bokeh.plotting import figure as bokeh_figure
+from bokeh.plotting import curdoc
+from bokeh.driving import linear
+from bokeh.models import ColumnDataSource
+import traceback
+
 
 pn.extension('plotly')
 pn.extension('floatpanel')
@@ -286,10 +295,10 @@ def update_project(project_name_select):
     interpolate_dataframe()
     current_project_name = project_name_select
 
-# column_select_choice = pn.widgets.MultiChoice(name="Variables for "+project_name_select.value, value=[],
-#     options=[], align="center")
-column_select_choice = pn.widgets.MultiChoice(name="Please create/select a project.", value=[],
+column_select_choice = pn.widgets.MultiChoice(name="Variables for "+project_name_select.value, value=[],
     options=[], align="center")
+# column_select_choice = pn.widgets.MultiChoice(name="Please create/select a project.", value=[],
+#     options=[], align="center")
 
 
 def clear_all_columns(event):
@@ -298,8 +307,9 @@ def clear_all_columns(event):
 clear_all_columns_btn = pn.widgets.Button(name='Clear all columns', height=50, align="center")
 clear_all_columns_btn.on_click(clear_all_columns)
 
+real_time_switch = pn.widgets.Switch(name='Switch')
+
 def generate_plot(event):
-    global current_dataframe
     try:
         plotly_pane.object = graphing()
     except Exception as ex:
@@ -368,6 +378,7 @@ plot_generation = pn.Row(
     clear_all_columns_btn,
     generate_plot_btn,
     generate_table_btn,
+    real_time_switch,
     pn.layout.VSpacer(),
     height=80
 )
@@ -408,5 +419,94 @@ template = pn.template.FastGridTemplate(
 template.main[:6, 0:12] = user_input_block
 template.main[6:18, 0:12] = plot_display
 template.main[18:23, 0:12] = tabulator_display
+
+## Real time
+def format_byte_message(message):
+    formatted_msg = message.decode("utf-8")[:-1]
+    return formatted_msg
+
+@linear()
+def update(step):
+    global streaming_df
+    with mutex:
+        source.stream(streaming_df, rollover=roll_over)
+        streaming_df = streaming_df.iloc[-roll_over:]
+
+@pn.depends(real_time_switch.param.value, watch=True)
+def start_reading_thread(real_time_switch_value):
+    global plotly_pane
+    if real_time_switch_value:
+        plotly_pane = generate_bokeh_figure()
+        thread = threading.Thread(target=read_data)
+        thread.start()
+    else:
+        plotly_pane = pn.pane(graphing())
+
+def read_data():
+    global streaming_df
+    try:
+        while real_time_switch.value:
+            message = ser.readline() 
+            validated_message = format_byte_message(message)
+            if validated_message != "":
+                try: 
+                    updatedData= canverter.decode_message_stream(validated_message)
+                    with mutex:
+                        streaming_df = pd.concat([streaming_df, updatedData])
+                    print(streaming_df.tail())
+                except:
+                    print(validated_message)
+                    print(traceback.format_exc())
+
+    except:
+        print(traceback.format_exc())
+        print('Program exit !')
+        pass
+
+tty_ports = os.listdir("/dev")
+tty_ports = list(filter(lambda port: port.startswith("tty."), tty_ports))
+for opt_num, port_name  in enumerate(tty_ports):
+    print("["+ str(opt_num) + "] /dev/" + port_name)
+port_option_num = input("Choose a port to connect to: ")
+port_name = "/dev/" + tty_ports[int(port_option_num)]
+print("Connecting to " + port_name + "...")
+
+# configure the serial connections (the parameters differs on the device you are connecting to)
+ser = serial.Serial(port=port_name, baudrate=12000000, timeout=1, xonxoff=False, rtscts=False, dsrdtr=True)        
+canverter = CANverter.CANverter("./dbc/test.dbc")
+mutex = threading.Lock()
+
+#initialize streaming_df
+streaming_df = pd.DataFrame()
+while True:
+    try:
+        message = ser.readline()
+        validated_message = format_byte_message(message)
+        if validated_message != "":
+            streaming_df = canverter.decode_message_stream(validated_message)
+            break
+    except:
+        pass
+
+roll_over = 500
+
+source = ColumnDataSource(streaming_df)
+
+colors = ["red", "green", "blue",
+          "orange", "purple", "black",
+          "brown", "yellow"]
+
+def generate_bokeh_figure():
+    p = bokeh_figure(width=1400)
+    # do we need to delete this later ? idk
+    curdoc().add_root(p)
+
+    # Add a periodic callback to be run every 500 milliseconds
+    curdoc().add_periodic_callback(update, 100)
+    # need to update column selection choices
+    # need to regenerate when columns change...
+    for (column, color) in zip(column_select_choice.value, colors):
+        p.circle(x="Time (ms)", y=column, color = color, source=source)
+    return pn.pane.Bokeh(p)
 
 template.servable()
