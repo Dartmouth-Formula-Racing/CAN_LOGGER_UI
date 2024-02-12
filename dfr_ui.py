@@ -22,10 +22,8 @@ dbc_file_path = ''
 csv_file_path = ''
 project_options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
 current_project_name = ''
-
-##################################
 favorites_options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
-##################################
+
 
 Tk().withdraw()
 root_path = os.path.expanduser("~")
@@ -338,7 +336,7 @@ def favorites_load(event):
     with open('./FAVORITES/'+ favorites_select.clicked + '.pkl','rb') as f:
         column_select_choice.value = pickle.load(f)
 
-# favorites_select = pn.widgets.Select(name='Signal Groupings',options=favorites_options)
+
 favorites_select = pn.widgets.MenuButton(name='Signal Groupings',items=favorites_options, button_type='primary')
 favorites_select.on_click(favorites_load)
 
