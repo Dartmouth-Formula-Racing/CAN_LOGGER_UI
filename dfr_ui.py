@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 import base64
 import traceback
 import copy
+import pickle
 
 pn.extension('plotly')
 pn.extension('floatpanel')
@@ -21,6 +22,10 @@ dbc_file_path = ''
 csv_file_path = ''
 project_options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
 current_project_name = ''
+
+##################################
+favorites_options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
+##################################
 
 Tk().withdraw()
 root_path = os.path.expanduser("~")
@@ -233,12 +238,12 @@ def save_csv_callback(event):
         
 def export_data_panel(event):
     csv_export_text.placeholder = root_path
-    user_input_block.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=300, width=500, contained=False, position="center", theme="#00693e"))
+    tabulator_display.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=300, width=500, contained=False, position="center", theme="#00693e"))
     if len(csv_export_selection[-1]) > 1:
         csv_export_selection[-1].pop(1)
     
 def import_data_panel(event):
-    user_input_block.append(pn.layout.FloatPanel(file_selection, name='Import Data', height=400, width=500, contained=False, position="center", theme="#00693e"))
+    tabulator_display.append(pn.layout.FloatPanel(file_selection, name='Import Data', height=400, width=500, contained=False, position="center", theme="#00693e"))
     project_name_input_text.placeholder = "Project Name..."
     dbc_file_input_text.placeholder = root_path
     log_file_input_text.placeholder = root_path
@@ -251,12 +256,12 @@ choose_csv_file_btn = pn.widgets.Button(name='Choose a file', height=50,align='c
 choose_csv_file_btn.on_click(csv_file_picker_callback)
 save_csv_button = pn.widgets.Button(name='Save', height=50)
 save_csv_button.on_click(save_csv_callback)
-export_data_panel_btn = pn.widgets.Button(name='Export Data', align="center",height = 50)
+export_data_panel_btn = pn.widgets.Button(name='Export Data', align="center",height=35)
 export_data_panel_btn.on_click(export_data_panel)
 interpolate_csv_btn = pn.widgets.Checkbox(name='Interpolate Data')
 
 # IMPORT_DATA FUNCTION WIDGETS
-import_data_panel_btn = pn.widgets.Button(name='Import Data',align="center",height = 50)
+import_data_panel_btn = pn.widgets.Button(name='Import Data',align="center",height=35)
 import_data_panel_btn.on_click(import_data_panel)
 dbc_file_btn = pn.widgets.Button(name='Upload .dbc file', height=50)
 dbc_file_btn.on_click(dbc_file_picker_callback)
@@ -280,6 +285,90 @@ def update_project(project_name_select):
      # Interpolate all columns linearly based on the "time" column
     interpolate_dataframe()
     current_project_name = project_name_select
+
+####################################################
+def favorites_save_panel(event):
+    if len(favorites_save_selection[-1]) > 1:
+        favorites_save_selection[-1].pop(1)
+    tabulator_display.append(pn.layout.FloatPanel(favorites_save_selection, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
+
+def favorites_del_panel(event):
+    if len(favorites_del_selection[-1]) > 1:
+        favorites_del_selection[-1].pop(1)
+    tabulator_display.append(pn.layout.FloatPanel(favorites_del_selection, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
+
+def favorites_save(event):
+    global favorites_select
+    signals = column_select_choice.value
+
+    if len(favorites_save_selection[-1]) > 1:
+        favorites_save_selection[-1].pop(1)
+    favorites_save_selection[-1].append("Saving Data...")
+
+    if not os.path.exists('FAVORITES'):
+        os.makedirs('FAVORITES')
+    
+    try:
+        with open('./FAVORITES/'+ group_name.value + '.pkl','wb') as f:
+            pickle.dump(signals,f)
+        favorites_save_selection[-1][-1] = ('Saving Successful!')
+    except:
+        favorites_save_selection[-1][-1] = ('Saving Failed!')
+
+    favorites_select.items = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")] #Update dropdown menu
+    favorites_delete.options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
+
+def favorites_del(event):
+    global favorites_select
+    
+    if len(favorites_del_selection[-1]) > 1:
+        favorites_del_selection[-1].pop(1)
+    favorites_del_selection[-1].append("Deleting Data...")
+
+    try:
+        os.remove('./FAVORITES/' + favorites_delete.value + '.pkl')
+        favorites_del_selection[-1][-1] = ('Deleting Successful!')
+    except:
+        favorites_del_selection[-1][-1] = ('Deleting Failed!')
+
+    favorites_select.items = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")] #Update dropdown menu
+    favorites_delete.options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
+
+def favorites_load(event):
+    with open('./FAVORITES/'+ favorites_select.clicked + '.pkl','rb') as f:
+        column_select_choice.value = pickle.load(f)
+
+# favorites_select = pn.widgets.Select(name='Signal Groupings',options=favorites_options)
+favorites_select = pn.widgets.MenuButton(name='Signal Groupings',items=favorites_options, button_type='primary')
+favorites_select.on_click(favorites_load)
+
+favorites_save_btn = pn.widgets.Button(name='Save Grouping', height=35, align="start")
+favorites_save_btn.on_click(favorites_save_panel)
+
+favorites_del_btn = pn.widgets.Button(name='Delete Grouping', height=35, align="start")
+favorites_del_btn.on_click(favorites_del_panel)
+
+group_name = pn.widgets.TextInput(name='', placeholder='Enter a name here...')
+group_save_btn = pn.widgets.Button(name='Save', height=50, align="center")
+group_save_btn.on_click(favorites_save)
+
+group_del_btn = pn.widgets.Button(name='Delete', height=50, align="center")
+group_del_btn.on_click(favorites_del)
+
+favorites_delete = pn.widgets.Select(name='Signal Groupings', options=favorites_options)
+
+favorites_save_selection = pn.Column(
+    "Name your signal grouping. Be sure to use _ for spaces between words:",
+    pn.Row(group_name),
+    pn.Row(group_save_btn)
+    )
+
+favorites_del_selection = pn.Column(
+    "Select a signal grouping to delete:",
+    pn.Row(favorites_delete),
+    pn.Row(group_del_btn)
+    )
+####################################################
   
 column_select_choice = pn.widgets.MultiChoice(name="Variables for "+project_name_select.value, value=[],
     options=[], align="center")
@@ -362,6 +451,16 @@ plot_generation = pn.Row(
     height=80
 )
 
+#####################
+signal_fav = pn.Row(
+    pn.layout.VSpacer(),
+    favorites_select,
+    favorites_save_btn,
+    favorites_del_btn,
+    pn.layout.VSpacer(),
+    height=80
+)
+#####################
 comb_axes_text = pn.widgets.StaticText(name='Combine Y-Axes that have the same units', value='')
 comb_axes_tt = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button below to implement changes")
 comb_axes = pn.Row(
@@ -381,6 +480,9 @@ tabulator_display = pn.Row(
 user_input_block = pn.Column(
     pn.layout.VSpacer(),
     export_selection,
+    pn.layout.VSpacer(),
+    signal_fav,
+    pn.layout.VSpacer(),
     comb_axes,
     plot_generation,
     pn.layout.VSpacer(),
