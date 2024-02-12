@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 import base64
 import traceback
 import copy
+import pickle
 
 pn.extension('plotly')
 pn.extension('floatpanel')
@@ -237,12 +238,12 @@ def save_csv_callback(event):
         
 def export_data_panel(event):
     csv_export_text.placeholder = root_path
-    user_input_block.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=300, width=500, contained=False, position="center", theme="#00693e"))
+    tabulator_display.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=300, width=500, contained=False, position="center", theme="#00693e"))
     if len(csv_export_selection[-1]) > 1:
         csv_export_selection[-1].pop(1)
     
 def import_data_panel(event):
-    user_input_block.append(pn.layout.FloatPanel(file_selection, name='Import Data', height=400, width=500, contained=False, position="center", theme="#00693e"))
+    tabulator_display.append(pn.layout.FloatPanel(file_selection, name='Import Data', height=400, width=500, contained=False, position="center", theme="#00693e"))
     project_name_input_text.placeholder = "Project Name..."
     dbc_file_input_text.placeholder = root_path
     log_file_input_text.placeholder = root_path
@@ -286,7 +287,36 @@ def update_project(project_name_select):
     current_project_name = project_name_select
 
 ####################################################
+def favorites_save_panel(event):
+    tabulator_display.append(pn.layout.FloatPanel(favorites_save_selection, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
+
+def favorites_save(event):
+    signals = column_select_choice.value
+    favorites_save_selection[-1].pop(0)
+    
+    if not os.path.exists('FAVORITES'):
+        os.makedirs('FAVORITES')
+    
+    try:
+        with open('./FAVORITES/'+ group_name.value + '.pkl','wb') as f:
+            pickle.dump(signals,f)
+        favorites_save_selection.append('Saving Successful!')
+    except:
+        favorites_save_selection.append('Saving Failed!')
+
 favorites_select = pn.widgets.Select(name='Signal Groupings',options=favorites_options)
+favorites_save_btn = pn.widgets.Button(name='Save Grouping', height=50, align="center")
+favorites_save_btn.on_click(favorites_save_panel)
+
+group_name = pn.widgets.TextInput(name='', placeholder='Enter a name here...')
+group_save_btn = pn.widgets.Button(name='Save', height=50, align="center")
+group_save_btn.on_click(favorites_save)
+
+favorites_save_selection = pn.Column(
+    "Name your signal grouping. Be sure to use _ for spaces between words:",
+    pn.Row(group_name),
+    pn.Row(group_save_btn)
+    )
 ####################################################
   
 column_select_choice = pn.widgets.MultiChoice(name="Variables for "+project_name_select.value, value=[],
@@ -370,6 +400,15 @@ plot_generation = pn.Row(
     height=80
 )
 
+#####################
+signal_fav = pn.Row(
+    pn.layout.VSpacer(),
+    favorites_select,
+    favorites_save_btn,
+    pn.layout.VSpacer(),
+    height=80
+)
+#####################
 comb_axes_text = pn.widgets.StaticText(name='Combine Y-Axes that have the same units', value='')
 comb_axes_tt = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button below to implement changes")
 comb_axes = pn.Row(
@@ -393,7 +432,7 @@ user_input_block = pn.Column(
     comb_axes,
     plot_generation,
     pn.layout.VSpacer(),
-    favorites_select,
+    signal_fav,
     pn.layout.VSpacer(),
     max_height=200,
 )
