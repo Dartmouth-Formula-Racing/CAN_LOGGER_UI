@@ -288,24 +288,39 @@ def update_project(project_name_select):
 
 ####################################################
 def favorites_save_panel(event):
+    if len(favorites_save_selection[-1]) > 1:
+        favorites_save_selection[-1].pop(1)
     tabulator_display.append(pn.layout.FloatPanel(favorites_save_selection, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
 
 def favorites_save(event):
+    global favorites_options
+    global favorites_select
     signals = column_select_choice.value
-    favorites_save_selection[-1].pop(0)
-    
+
+    if len(favorites_save_selection[-1]) > 1:
+        favorites_save_selection[-1].pop(1)
+    favorites_save_selection[-1].append("Saving Data...")
+
     if not os.path.exists('FAVORITES'):
         os.makedirs('FAVORITES')
     
     try:
         with open('./FAVORITES/'+ group_name.value + '.pkl','wb') as f:
             pickle.dump(signals,f)
-        favorites_save_selection.append('Saving Successful!')
+        favorites_save_selection[-1][-1] = ('Saving Successful!')
     except:
-        favorites_save_selection.append('Saving Failed!')
+        favorites_save_selection[-1][-1] = ('Saving Failed!')
 
-favorites_select = pn.widgets.Select(name='Signal Groupings',options=favorites_options)
-favorites_save_btn = pn.widgets.Button(name='Save Grouping', height=50, align="center")
+    favorites_select.items = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")] #Update dropdown menu
+    
+def favorites_load(event):
+    with open('./FAVORITES/'+ favorites_select.clicked + '.pkl','rb') as f:
+        column_select_choice.value = pickle.load(f)
+
+# favorites_select = pn.widgets.Select(name='Signal Groupings',options=favorites_options)
+favorites_select = pn.widgets.MenuButton(name='Signal Groupings',items=favorites_options, button_type='primary')
+favorites_select.on_click(favorites_load)
+favorites_save_btn = pn.widgets.Button(name='Save Grouping', height=35, align="start")
 favorites_save_btn.on_click(favorites_save_panel)
 
 group_name = pn.widgets.TextInput(name='', placeholder='Enter a name here...')
@@ -429,10 +444,10 @@ user_input_block = pn.Column(
     pn.layout.VSpacer(),
     export_selection,
     pn.layout.VSpacer(),
+    signal_fav,
+    pn.layout.VSpacer(),
     comb_axes,
     plot_generation,
-    pn.layout.VSpacer(),
-    signal_fav,
     pn.layout.VSpacer(),
     max_height=200,
 )
