@@ -22,6 +22,10 @@ csv_file_path = ''
 project_options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
 current_project_name = ''
 
+##################################
+favorites_options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
+##################################
+
 Tk().withdraw()
 root_path = os.path.expanduser("~")
 
@@ -280,6 +284,10 @@ def update_project(project_name_select):
      # Interpolate all columns linearly based on the "time" column
     interpolate_dataframe()
     current_project_name = project_name_select
+
+####################################################
+favorites_select = pn.widgets.Select(name='Signal Groupings',options=favorites_options)
+####################################################
   
 column_select_choice = pn.widgets.MultiChoice(name="Variables for "+project_name_select.value, value=[],
     options=[], align="center")
@@ -381,8 +389,11 @@ tabulator_display = pn.Row(
 user_input_block = pn.Column(
     pn.layout.VSpacer(),
     export_selection,
+    pn.layout.VSpacer(),
     comb_axes,
     plot_generation,
+    pn.layout.VSpacer(),
+    favorites_select,
     pn.layout.VSpacer(),
     max_height=200,
 )
