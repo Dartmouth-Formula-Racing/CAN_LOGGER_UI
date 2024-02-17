@@ -475,16 +475,25 @@ tabulator_display = pn.Row(
     tabulator_pane
 )
 
-user_input_block = pn.Column(
+user_input_block_1 = pn.Column(
     pn.layout.VSpacer(),
     export_selection,
     pn.layout.VSpacer(),
     signal_fav,
-    pn.layout.VSpacer(),
+    max_height=200,
+)
+
+user_input_block_2 = pn.Column(
+    pn.layout.Spacer(height=40),
     comb_axes,
     plot_generation,
-    pn.layout.VSpacer(),
     max_height=200,
+)
+
+user_input_block = pn.Row(
+    user_input_block_1,
+    pn.layout.Spacer(width=30),
+    user_input_block_2,
 )
 
 template = pn.template.FastGridTemplate(
