@@ -42,6 +42,7 @@ def graphing():
     
     ys = column_select_choice.value
     switch = comb_axes_switch.value
+    x = x_select_choice.value
     fig = go.Figure()
 
     if len(ys) == 0:
@@ -70,7 +71,7 @@ def graphing():
         for units in grouped_plots:
             for column_name in grouped_plots[units]:
                 fig.add_trace(go.Scatter(
-                    x=current_dataframe[time_field],
+                    x=current_dataframe[x],
                     y=current_dataframe[column_name],
                     name=column_name,
                     yaxis=f"y{i}"
@@ -82,7 +83,7 @@ def graphing():
         i=1
         for column_name in ys:
             fig.add_trace(go.Scatter(
-                x=current_dataframe[time_field],
+                x=current_dataframe[x],
                 y=current_dataframe[column_name],
                 name=column_name,
                 yaxis=f"y{i}"
@@ -91,7 +92,7 @@ def graphing():
         signal_num = len(ys)
     
     fig.update_layout(
-        xaxis=dict(domain=[0.2, 0.8], title=time_field),
+        xaxis=dict(domain=[0.2, 0.8], title=x),
     )
 
     signal_num = len(ys)
@@ -164,6 +165,7 @@ def interpolate_dataframe():
     # Interpolate all columns linearly based on the "time" column
     current_dataframe = current_dataframe.interpolate(method='linear', axis=0)
     all_columns = current_dataframe.columns.tolist()
+    x_select_choice.options = all_columns
     all_columns.remove(time_field)
     column_select_choice.options = all_columns
     
@@ -277,7 +279,8 @@ project_name_select = pn.widgets.Select(name='Select Project',options=project_op
 def update_project(project_name_select):
     global current_dataframe
     global current_project_name
-    column_select_choice.name = "Variables for "+project_name_select
+    column_select_choice.name = "Y Variables for "+project_name_select
+    x_select_choice.name = "X Variable for "+project_name_select
     column_select_choice.value = []
     current_dataframe = pd.read_pickle("./PROJECTS/"+project_name_select+".project")
      # Interpolate all columns linearly based on the "time" column
@@ -368,8 +371,10 @@ favorites_del_selection = pn.Column(
     )
 ####################################################
   
-column_select_choice = pn.widgets.MultiChoice(name="Variables for "+project_name_select.value, value=[],
+column_select_choice = pn.widgets.MultiChoice(name="Y Variables for "+project_name_select.value, value=[],
     options=[], align="center")
+
+x_select_choice = pn.widgets.Select(name="X Variable for "+project_name_select.value,options=[])
 
 def clear_all_columns(event):
     column_select_choice.value = []
@@ -440,25 +445,32 @@ export_selection = pn.Row(
         height=80
     )
 
-plot_generation = pn.Row(
+plot_generation_y = pn.Row(
     pn.layout.VSpacer(),
     column_select_choice,
     clear_all_columns_btn,
+    pn.layout.VSpacer(),
+    height=80
+)
+
+plot_generation_x = pn.Row(
+    pn.layout.VSpacer(),
+    x_select_choice,
     generate_plot_btn,
     pn.layout.VSpacer(),
     height=80
 )
 
-#####################
+
 signal_fav = pn.Row(
     pn.layout.VSpacer(),
     favorites_select,
     favorites_save_btn,
     favorites_del_btn,
     pn.layout.VSpacer(),
-    height=80
+    height=80 
 )
-#####################
+
 comb_axes_text = pn.widgets.StaticText(name='Combine Y-Axes that have the same units', value='')
 comb_axes_tt = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button below to implement changes")
 comb_axes = pn.Row(
@@ -466,6 +478,7 @@ comb_axes = pn.Row(
     comb_axes_switch,
     comb_axes_tt
 )
+
 
 plot_display = pn.Column(
     plotly_pane,
@@ -486,7 +499,8 @@ user_input_block_1 = pn.Column(
 user_input_block_2 = pn.Column(
     pn.layout.Spacer(height=40),
     comb_axes,
-    plot_generation,
+    plot_generation_x,
+    plot_generation_y,
     max_height=200,
 )
 
