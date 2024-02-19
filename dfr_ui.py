@@ -163,11 +163,18 @@ def interpolate_dataframe():
     global current_dataframe
     
     # Interpolate all columns linearly based on the "time" column
+
+    if 'Time (s)' not in current_dataframe.columns:
+        current_dataframe.insert(0, 'Time (s)', current_dataframe['Time (ms)'] / 1000)
+
     current_dataframe = current_dataframe.interpolate(method='linear', axis=0)
     all_columns = current_dataframe.columns.tolist()
     x_select_choice.options = all_columns
-    all_columns.remove(time_field)
-    column_select_choice.options = all_columns
+
+    columns_to_remove = ['Time (s)', 'Time (ms)']
+    copy_current_dataframe = current_dataframe.drop(columns=columns_to_remove)
+    y_columns = copy_current_dataframe.columns.tolist()
+    column_select_choice.options = y_columns
     
 
 def dbc_file_picker_callback(event):
@@ -279,6 +286,7 @@ project_name_select = pn.widgets.Select(name='Select Project',options=project_op
 def update_project(project_name_select):
     global current_dataframe
     global current_project_name
+    
     column_select_choice.name = "Y Variables for "+project_name_select
     x_select_choice.name = "X Variable for "+project_name_select
     column_select_choice.value = []
@@ -384,6 +392,8 @@ clear_all_columns_btn.on_click(clear_all_columns)
 
 def generate_plot(event):
     global current_dataframe
+    global time_field
+    
     try:
         plotly_pane.object = graphing()
     except Exception as ex:
