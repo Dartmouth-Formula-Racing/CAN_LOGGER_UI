@@ -16,7 +16,6 @@ import json
 pn.extension('plotly')
 pn.extension('floatpanel')
 pn.extension('tabulator')
-#pn.extension(design='material', global_css=[':root { --design-primary-color: "#00693e"; }'])
 
 curr_project = projects.Project(constants.TIME_FIELD)
 time_series_canverter = None
@@ -403,9 +402,9 @@ user_input_block = pn.Column(
             pn.Column(
                 pn.layout.VSpacer(),
 
-                pn.Row(
-                favorites_select
-                ),
+                # pn.Row(
+                # # favorites_select
+                # ),
                 pn.Row(
                     pn.layout.VSpacer(),
                     favorites_save_btn,
