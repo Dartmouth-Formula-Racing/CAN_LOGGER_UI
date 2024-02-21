@@ -425,7 +425,6 @@ template = pn.template.FastListTemplate(
     logo=f"data:image/jpeg;base64,{encoded_string}",
     accent="#00693e",
     sidebar=user_input_block,
-    # prevent_collision=True,
     shadow=False
 )
 
