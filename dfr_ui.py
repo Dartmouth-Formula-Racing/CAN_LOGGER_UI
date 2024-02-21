@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 import base64
 import traceback
 import copy
+import pickle
 
 pn.extension('plotly')
 pn.extension('floatpanel')
@@ -21,6 +22,8 @@ dbc_file_path = ''
 csv_file_path = ''
 project_options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
 current_project_name = ''
+favorites_options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
+button_height = 35
 
 Tk().withdraw()
 root_path = os.path.expanduser("~")
@@ -39,7 +42,30 @@ def graphing():
     
     ys = column_select_choice.value
     switch = comb_axes_switch.value
+    x = x_select_choice.value
     fig = go.Figure()
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)', 
+        plot_bgcolor='rgba(0,0,0,0)',    
+        autosize=True
+    )
+    fig.update_xaxes(
+        showline=True,
+        linecolor='black',
+        mirror=True,
+        gridcolor='rgb(180, 180, 180)',
+        zeroline=True,
+        zerolinecolor='rgb(180, 180, 180)'
+    )
+    fig.update_yaxes(
+        showline=True,
+        linecolor='black',
+        mirror=True,
+        gridcolor='rgb(180, 180, 180)',
+        zeroline=True,
+        zerolinecolor='rgb(180, 180, 180)'
+    )
+
 
     if len(ys) == 0:
         return fig
@@ -67,7 +93,7 @@ def graphing():
         for units in grouped_plots:
             for column_name in grouped_plots[units]:
                 fig.add_trace(go.Scatter(
-                    x=current_dataframe[time_field],
+                    x=current_dataframe[x],
                     y=current_dataframe[column_name],
                     name=column_name,
                     yaxis=f"y{i}"
@@ -79,7 +105,7 @@ def graphing():
         i=1
         for column_name in ys:
             fig.add_trace(go.Scatter(
-                x=current_dataframe[time_field],
+                x=current_dataframe[x],
                 y=current_dataframe[column_name],
                 name=column_name,
                 yaxis=f"y{i}"
@@ -88,7 +114,7 @@ def graphing():
         signal_num = len(ys)
     
     fig.update_layout(
-        xaxis=dict(domain=[0.2, 0.8], title=time_field),
+        xaxis=dict(domain=[0.2, 0.8], title=x),
     )
 
     signal_num = len(ys)
@@ -132,7 +158,6 @@ def graphing():
 
     # Update layout properties
     fig.update_layout(
-        width=800,
         legend=dict(
             orientation='h',
             yanchor='bottom',
@@ -159,10 +184,18 @@ def interpolate_dataframe():
     global current_dataframe
     
     # Interpolate all columns linearly based on the "time" column
+
+    if 'Time (s)' not in current_dataframe.columns:
+        current_dataframe.insert(0, 'Time (s)', current_dataframe['Time (ms)'] / 1000)
+
     current_dataframe = current_dataframe.interpolate(method='linear', axis=0)
     all_columns = current_dataframe.columns.tolist()
-    all_columns.remove(time_field)
-    column_select_choice.options = all_columns
+    x_select_choice.options = all_columns
+
+    columns_to_remove = ['Time (s)', 'Time (ms)']
+    copy_current_dataframe = current_dataframe.drop(columns=columns_to_remove)
+    y_columns = copy_current_dataframe.columns.tolist()
+    column_select_choice.options = y_columns
     
 
 def dbc_file_picker_callback(event):
@@ -181,9 +214,9 @@ def import_data_callback(event):
     global canverter
     global current_dataframe
     global log_file_path
-    if len(file_selection[-1]) > 1:
-        file_selection[-1].pop(1)
-    file_selection[-1].append("Importing Data...")
+    if len(log_import_selection[-1]) > 1:
+        log_import_selection[-1].pop(1)
+    log_import_selection[-1].append("Importing Data...")
     try:
         # Get the file extension
         log_file_path = log_file_input_text.value
@@ -203,10 +236,10 @@ def import_data_callback(event):
                 print('csv')
             else:
                 raise Exception
-            file_selection[-1][-1]= ("Importing Successful!")
+            log_import_selection[-1][-1]= ("Importing Successful!")
     except Exception as e:
         traceback.print_exc()
-        file_selection[-1][-1]= ("Importing Failed!")
+        log_import_selection[-1][-1]= ("Importing Failed!")
 
 def csv_file_picker_callback(event):
     global csv_file_path
@@ -233,17 +266,17 @@ def save_csv_callback(event):
         
 def export_data_panel(event):
     csv_export_text.placeholder = root_path
-    user_input_block.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=300, width=500, contained=False, position="center", theme="#00693e"))
+    float_panel.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=300, width=500, contained=False, position="center", theme="#00693e"))
     if len(csv_export_selection[-1]) > 1:
         csv_export_selection[-1].pop(1)
     
 def import_data_panel(event):
-    user_input_block.append(pn.layout.FloatPanel(file_selection, name='Import Data', height=400, width=500, contained=False, position="center", theme="#00693e"))
+    float_panel.append(pn.layout.FloatPanel(log_import_selection, name='Import Data', height=400, width=500, contained=False, position="center", theme="#00693e"))
     project_name_input_text.placeholder = "Project Name..."
     dbc_file_input_text.placeholder = root_path
     log_file_input_text.placeholder = root_path
-    if len(file_selection[-1]) > 1:
-        file_selection[-1].pop(1)
+    if len(log_import_selection[-1]) > 1:
+        log_import_selection[-1].pop(1)
 
 #CSV_EXPORT FUNCTION WIDGETS
 csv_export_text = pn.widgets.TextInput(placeholder=root_path, height = 50, width = 300,align='center')
@@ -251,12 +284,12 @@ choose_csv_file_btn = pn.widgets.Button(name='Choose a file', height=50,align='c
 choose_csv_file_btn.on_click(csv_file_picker_callback)
 save_csv_button = pn.widgets.Button(name='Save', height=50)
 save_csv_button.on_click(save_csv_callback)
-export_data_panel_btn = pn.widgets.Button(name='Export Data', align="center",height = 50)
+export_data_panel_btn = pn.widgets.Button(name='Export Data', align="center",height=35)
 export_data_panel_btn.on_click(export_data_panel)
 interpolate_csv_btn = pn.widgets.Checkbox(name='Interpolate Data')
 
 # IMPORT_DATA FUNCTION WIDGETS
-import_data_panel_btn = pn.widgets.Button(name='Import Data',align="center",height = 50)
+import_data_panel_btn = pn.widgets.Button(name='Import Data',align="center",height=35)
 import_data_panel_btn.on_click(import_data_panel)
 dbc_file_btn = pn.widgets.Button(name='Upload .dbc file', height=50)
 dbc_file_btn.on_click(dbc_file_picker_callback)
@@ -274,52 +307,136 @@ project_name_select = pn.widgets.Select(name='Select Project',options=project_op
 def update_project(project_name_select):
     global current_dataframe
     global current_project_name
-    column_select_choice.name = "Variables for "+project_name_select
+    
+    column_select_choice.name = "Y Variables for "+project_name_select
+    x_select_choice.name = "X Variable for "+project_name_select
     column_select_choice.value = []
     current_dataframe = pd.read_pickle("./PROJECTS/"+project_name_select+".project")
      # Interpolate all columns linearly based on the "time" column
     interpolate_dataframe()
     current_project_name = project_name_select
+
+####################################################
+def favorites_save_panel(event):
+    if len(favorites_save_selection[-1]) > 1:
+        favorites_save_selection[-1].pop(1)
+    float_panel.append(pn.layout.FloatPanel(favorites_save_selection, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
+
+def favorites_del_panel(event):
+    if len(favorites_del_selection[-1]) > 1:
+        favorites_del_selection[-1].pop(1)
+    float_panel.append(pn.layout.FloatPanel(favorites_del_selection, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
+
+def favorites_save(event):
+    global favorites_select
+    signals = column_select_choice.value
+
+    if len(favorites_save_selection[-1]) > 1:
+        favorites_save_selection[-1].pop(1)
+    favorites_save_selection[-1].append("Saving Data...")
+
+    if not os.path.exists('FAVORITES'):
+        os.makedirs('FAVORITES')
+    
+    try:
+        with open('./FAVORITES/'+ group_name.value + '.pkl','wb') as f:
+            pickle.dump(signals,f)
+        favorites_save_selection[-1][-1] = ('Saving Successful!')
+    except:
+        favorites_save_selection[-1][-1] = ('Saving Failed!')
+
+    favorites_select.items = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")] #Update dropdown menu
+    favorites_delete.options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
+
+def favorites_del(event):
+    global favorites_select
+    
+    if len(favorites_del_selection[-1]) > 1:
+        favorites_del_selection[-1].pop(1)
+    favorites_del_selection[-1].append("Deleting Data...")
+
+    try:
+        os.remove('./FAVORITES/' + favorites_delete.value + '.pkl')
+        favorites_del_selection[-1][-1] = ('Deleting Successful!')
+    except:
+        favorites_del_selection[-1][-1] = ('Deleting Failed!')
+
+    favorites_select.items = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")] #Update dropdown menu
+    favorites_delete.options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
+
+def favorites_load(event):
+    with open('./FAVORITES/'+ favorites_select.clicked + '.pkl','rb') as f:
+        column_select_choice.value = pickle.load(f)
+
+
+favorites_select = pn.widgets.MenuButton(name='Signal Groupings',items=favorites_options, button_type='primary', sizing_mode="stretch_width")
+favorites_select.on_click(favorites_load)
+
+favorites_save_btn = pn.widgets.Button(name='Save Grouping', height=button_height, align="start")
+favorites_save_btn.on_click(favorites_save_panel)
+
+favorites_del_btn = pn.widgets.Button(name='Delete Grouping', height=button_height, align="start")
+favorites_del_btn.on_click(favorites_del_panel)
+
+group_name = pn.widgets.TextInput(name='', placeholder='Enter a name here...')
+group_save_btn = pn.widgets.Button(name='Save', height=button_height, align="center")
+group_save_btn.on_click(favorites_save)
+
+group_del_btn = pn.widgets.Button(name='Delete', height=button_height, align="center")
+group_del_btn.on_click(favorites_del)
+
+favorites_delete = pn.widgets.Select(name='Signal Groupings', options=favorites_options)
+
+favorites_save_selection = pn.Column(
+    "Name your signal grouping. Be sure to use _ for spaces between words:",
+    pn.Row(group_name),
+    pn.Row(group_save_btn)
+    )
+
+favorites_del_selection = pn.Column(
+    "Select a signal grouping to delete:",
+    pn.Row(favorites_delete),
+    pn.Row(group_del_btn)
+    )
+####################################################
   
-column_select_choice = pn.widgets.MultiChoice(name="Variables for "+project_name_select.value, value=[],
+column_select_choice = pn.widgets.MultiChoice(name="Y Variables for "+project_name_select.value, value=[],
     options=[], align="center")
+
+x_select_choice = pn.widgets.Select(name="X Variable for "+project_name_select.value,options=[])
 
 def clear_all_columns(event):
     column_select_choice.value = []
 
-clear_all_columns_btn = pn.widgets.Button(name='Clear all columns', height=50, align="center")
+clear_all_columns_btn = pn.widgets.Button(name='Clear all columns', height=button_height, align="center")
 clear_all_columns_btn.on_click(clear_all_columns)
 
 def generate_plot(event):
     global current_dataframe
+    global time_field
     try:
-        plotly_pane.object = graphing()
+        final_filter = column_select_choice.value.copy()
+        final_filter.insert(0, time_field)
+        filtered_df = current_dataframe[final_filter]
+        template.main[0][0][0] = pn.WidgetBox(
+            pn.pane.Plotly(graphing(), sizing_mode="stretch_both", margin=10),
+            pn.widgets.Tabulator(filtered_df, show_index = False, page_size=10),
+            float_panel
+        )
     except Exception as ex:
         raise ex
 
 # Create an empty plot using hvplot
 figure = graphing()
+plotly_pane = pn.pane.Plotly(figure, sizing_mode="stretch_both", margin=10)
 
-plotly_pane = pn.pane.Plotly(figure, sizing_mode="stretch_both")
-
-generate_plot_btn = pn.widgets.Button(name='Generate plot', height=50, align="center")
+generate_plot_btn = pn.widgets.Button(name='Generate plot', height=button_height, align="center")
 generate_plot_btn.on_click(generate_plot)
-
-
-def tabulation(event):
-    global current_dataframe
-    final_filter = column_select_choice.value.copy()
-    final_filter.append(time_field)
-    filtered_df = current_dataframe[final_filter]
-    tabulator_display.pop(0)
-    tabulator_display.append(pn.widgets.Tabulator(filtered_df, show_index = False))
-
+    
 # Create a tabulator based on the data
-generate_plot_btn.on_click(tabulation)
 tabulator_pane = pn.widgets.Tabulator(current_dataframe, show_index = False)
-
-file_selection = pn.Column(
-    "Name your project and select a new .log file or an old .csv or .pkl file.\nIf you want to upload a .log file, please first select the .dbc file you would like to use.",
+log_import_selection = pn.Column(
+    "Name your project, select .log file, and .dbc file",
     pn.Row(
         project_name_input_text,
     ),
@@ -330,7 +447,6 @@ file_selection = pn.Column(
     pn.Row(
         log_file_input_text,
         data_file_btn,
-        
     ),
     pn.Row(
         import_data_button
@@ -346,57 +462,101 @@ csv_export_selection = pn.Column(
     )
 export_selection = pn.Row(
         pn.layout.VSpacer(),
-        project_name_select,
+        pn.layout.HSpacer(),
         import_data_panel_btn,
+        pn.layout.HSpacer(),
         export_data_panel_btn,
         pn.layout.VSpacer(),
-        height=80
+        pn.layout.HSpacer(),
+        height=80,
     )
 
-plot_generation = pn.Row(
+plot_generation_y = pn.Row(
     pn.layout.VSpacer(),
     column_select_choice,
-    clear_all_columns_btn,
-    generate_plot_btn,
     pn.layout.VSpacer(),
     height=80
 )
 
-comb_axes_text = pn.widgets.StaticText(name='Combine Y-Axes that have the same units', value='')
-comb_axes_tt = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button below to implement changes")
+plot_generation_x = pn.Row(
+    pn.layout.VSpacer(),
+    x_select_choice,
+    pn.layout.VSpacer(),
+    height=80
+)
+
 comb_axes = pn.Row(
-    comb_axes_text,
+    pn.layout.VSpacer(),
+    pn.widgets.StaticText(name='Combine Y-Axes', value=''),
+    pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button below to implement changes", width=20),
     comb_axes_switch,
-    comb_axes_tt
-)
-
-plot_display = pn.Column(
-    plotly_pane,
-)
-
-tabulator_display = pn.Row(
-    tabulator_pane
+    pn.layout.VSpacer(),
+    height =30,
 )
 
 user_input_block = pn.Column(
-    pn.layout.VSpacer(),
     export_selection,
-    comb_axes,
-    plot_generation,
     pn.layout.VSpacer(),
-    max_height=200,
+    project_name_select,
+    pn.layout.VSpacer(),
+    pn.Tabs(
+        ("Manual",
+         pn.Column(
+        plot_generation_x,
+        plot_generation_y,
+        comb_axes,
+        pn.Row(
+            generate_plot_btn,
+            clear_all_columns_btn,
+        ),
+    margin=(25, 10))
+         ),
+        ( "Groupings",
+            pn.Column(
+                pn.layout.VSpacer(),
+
+                pn.Row(
+                favorites_select
+                ),
+                pn.Row(
+                    pn.layout.VSpacer(),
+                    favorites_save_btn,
+                    favorites_del_btn,
+                    pn.layout.VSpacer(),
+                    pn.layout.HSpacer(),
+                ),
+                pn.layout.VSpacer(),
+            ),
+        )
+    ),
+    max_height=250,
 )
 
-template = pn.template.FastGridTemplate(
+plot_display = pn.layout.Row(
+    plotly_pane,
+    sizing_mode="stretch_both"
+)
+
+template = pn.template.FastListTemplate(
     title="DFR CAN UI",
     logo=f"data:image/jpeg;base64,{encoded_string}",
     accent="#00693e",
-    background_color="#f3f0e4",
-    row_height = 50
-    )
+    sidebar=user_input_block,
+    prevent_collision=True,
+    shadow=False
+)
 
-template.main[:6, 0:12] = user_input_block
-template.main[6:18, 0:12] = plot_display
-template.main[18:23, 0:12] = tabulator_display
+float_panel = pn.Row(height=0, width=0,visible=False)
+
+template.main.append(pn.Tabs(
+    ("Visualize Projects", 
+        pn.WidgetBox(
+            plotly_pane, 
+            tabulator_pane,
+            float_panel
+            )
+        ), 
+    ("Real-Time Plotting", 
+        pn.WidgetBox())))
 
 template.servable()
