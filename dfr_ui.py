@@ -14,6 +14,7 @@ import constants
 pn.extension('plotly')
 pn.extension('floatpanel')
 pn.extension('tabulator')
+#pn.extension(design='material', global_css=[':root { --design-primary-color: "#00693e"; }'])
 
 current_dataframe = pd.DataFrame(columns=[constants.TIME_FIELD, 'y'])
 canverter = None
@@ -211,7 +212,7 @@ def favorites_save(event):
     except:
         favorites_save_selection[-1][-1] = ('Saving Failed!')
 
-    favorites_select.items = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")] #Update dropdown menu
+    favorites_select.options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")] #Update dropdown menu
     favorites_delete.options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
 
 def favorites_del(event):
@@ -227,16 +228,15 @@ def favorites_del(event):
     except:
         favorites_del_selection[-1][-1] = ('Deleting Failed!')
 
-    favorites_select.items = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")] #Update dropdown menu
+    favorites_select.options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")] #Update dropdown menu
     favorites_delete.options = [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
 
-def favorites_load(event):
-    with open('./FAVORITES/'+ favorites_select.clicked + '.pkl','rb') as f:
+
+favorites_select = pn.widgets.Select(name='Signal Groupings',options=favorites_options)
+@pn.depends(favorites_select.param.value, watch=True)
+def favorites_load(favorites_select):
+    with open('./FAVORITES/'+ favorites_select + '.pkl','rb') as f:
         column_select_choice.value = pickle.load(f)
-
-
-favorites_select = pn.widgets.MenuButton(name='Signal Groupings',items=favorites_options, button_type='primary', sizing_mode="stretch_width")
-favorites_select.on_click(favorites_load)
 
 favorites_save_btn = pn.widgets.Button(name='Save Grouping', height=button_height, align="start")
 favorites_save_btn.on_click(favorites_save_panel)
@@ -401,7 +401,7 @@ template = pn.template.FastListTemplate(
     logo=f"data:image/jpeg;base64,{encoded_string}",
     accent="#00693e",
     sidebar=user_input_block,
-    prevent_collision=True,
+    # prevent_collision=True,
     shadow=False
 )
 
