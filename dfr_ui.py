@@ -44,7 +44,7 @@ def build_current_project(log_file_path, project_name):
 
     curr_project.ts_dataframe = time_series_canverter.log_to_dataframe(log_file_path)
     curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=constants.TIME_FIELD)
-    curr_project.msg_dict = curr_project.store_msg_df_as_dict(message_canverter.log_to_dataframe(log_file_path).sort_values(by=time_field))
+    curr_project.msg_dict = curr_project.store_msg_df_as_dict(message_canverter.log_to_dataframe(log_file_path).sort_values(by=constants.TIME_FIELD))
     with open("./PROJECTS/"+project_name+".project", 'wb') as f:
         pickle.dump(curr_project, f)
 
@@ -146,7 +146,7 @@ def export_data_panel(event):
         csv_export_selection[-1].pop(1)
     
 def import_data_panel(event):
-    update_float_display(float_panel_display, pn.layout.FloatPanel(log_import_selection, name='Create Project', height=400, width=500, contained=False, position="center", theme="#00693e"))
+    update_float_display(float_panel_display, pn.layout.FloatPanel(log_import_selection, name='Create Project', height=440, contained=False, position="center", theme="#00693e"))
     project_name_input_text.placeholder = "Project Name..."
     time_series_dbc_file_input_text.placeholder = root_path
     log_file_input_text.placeholder = root_path
@@ -298,14 +298,14 @@ clear_all_columns_btn = pn.widgets.Button(name='Clear all columns', height=butto
 clear_all_columns_btn.on_click(clear_all_columns)
 
 def generate_plot(event):
-    global current_dataframe
-    plotly_pane.object = update_graph_figure(current_dataframe, column_select_choice.value, x_select_choice.value, comb_axes_switch.value)
+    global curr_project
+    plotly_pane.object = update_graph_figure(curr_project.ts_dataframe, column_select_choice.value, x_select_choice.value, comb_axes_switch.value)
     final_filter = column_select_choice.value.copy()
     final_filter.insert(0, constants.TIME_FIELD)
-    update_tabulator_display(tabulator_display, pn.widgets.Tabulator(current_dataframe[final_filter], show_index = False, page_size=10, layout='fit_columns', sizing_mode='stretch_width'))
+    update_tabulator_display(tabulator_display, pn.widgets.Tabulator(curr_project.ts_dataframe[final_filter], show_index = False, page_size=10, layout='fit_columns', sizing_mode='stretch_width'))
 
 # Create an empty plot using hvplot
-figure = update_graph_figure(current_dataframe, column_select_choice.value, x_select_choice.value, comb_axes_switch.value)
+figure = update_graph_figure(curr_project.ts_dataframe, column_select_choice.value, x_select_choice.value, comb_axes_switch.value)
 plotly_pane = pn.pane.Plotly(figure, sizing_mode="stretch_both", margin=10)
 
 generate_plot_btn = pn.widgets.Button(name='Generate plot', height=button_height, align="center")
@@ -425,7 +425,7 @@ template = pn.template.FastListTemplate(
     logo=f"data:image/jpeg;base64,{encoded_string}",
     accent="#00693e",
     sidebar=user_input_block,
-    prevent_collision=True,
+    # prevent_collision=True,
     shadow=False
 )
 
