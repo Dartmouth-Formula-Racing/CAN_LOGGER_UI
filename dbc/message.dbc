@@ -1,0 +1,118 @@
+VERSION ""
+
+
+NS_ : 
+		NS_DESC_
+		CM_
+		BA_DEF_
+		BA_
+		VAL_
+		CAT_DEF_
+		CAT_
+		FILTER
+		BA_DEF_DEF_
+		EV_DATA_
+		ENVVAR_DATA_
+		SGTYPE_
+		SGTYPE_VAL_
+		BA_DEF_SGTYPE_
+		BA_SGTYPE_
+		SIG_TYPE_REF_
+		VAL_TABLE_
+		SIG_GROUP_
+		SIG_VALTYPE_
+		SIGTYPE_VALTYPE_
+		BO_TX_BU_
+		BA_DEF_REL_
+		BA_REL_
+		BA_DEF_DEF_REL_
+		BU_SG_REL_
+		BU_EV_REL_
+		BU_BO_REL_
+		SG_MUL_VAL_
+
+BS_:
+
+BU_:
+
+
+
+BO_ 171 BMS_POST_Faults: 8 Vector__XXX
+	SG_ Hardware_Gate_Desaturation_Fault : 0|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ HW_Over_current_Fault : 1|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Accelerator_Shorted : 2|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Accelerator_Open : 3|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Current_Sensor_Low : 4|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Current_Sensor_High : 5|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Module_Temperature_Low : 6|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Module_Temperature_High : 7|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Control_PCB_Temperature_Low : 8|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Control_PCB_Temperature_High : 9|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Gate_Drive_PCB_Temperature_Low : 10|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Gate_Drive_PCB_Temperature_High : 11|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ _5V_Sense_Voltage_Low : 12|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ _5V_Sense_Voltage_High : 13|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ _12V_Sense_Voltage_Low : 14|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ _12V_Sense_Voltage_High : 15|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ _2pt5V_Sense_Voltage_Low : 16|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ _2pt5V_Sense_Voltage_High : 17|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ _1pt5V_Sense_Voltage_Low : 18|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ _1pt5V_Sense_Voltage_High : 19|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ DC_Bust_Voltage_High : 20|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ DC_Bus_Voltage_Low : 21|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Pre_charge_Timeout : 22|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Pre_charge_Voltage_Failure : 23|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ EEPROM_Checksum_Invalid : 24|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ EEPROM_Date_Out_of_Range : 25|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ EEPROM_Update_Required : 26|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Hardware_DC_Bus_Over_Voltage_dur : 27|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Gate_Driver_Initialization : 28|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Reserved : 29|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Brake_Shorten : 30|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Brake_Open : 31|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Motor_Over_speed_Fault : 32|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Over_current_Fault : 33|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Inverter_Over_temperature_Fault : 34|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Accelerator_Input_Shorted_Fault : 35|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Accelerator_Input_Open_Fault : 36|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Direction_Command_Fault : 37|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Inverter_Response_Time_out_Fault : 38|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Hardware_Gate_Desaturation_2 : 39|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Hardware_Over_current_Fault : 40|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Under_voltage_Fault : 41|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ CAN_Command_Message_Lost_Fault : 42|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Motor_Over_temperature_Fault : 43|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Brake_Input_Shorted_Fault : 47|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Brake_Input_Open_Fault : 48|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Module_A_Over_temperature_Fault : 49|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Module_B_Over_temperature_Fault : 50|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Module_C_Over_temperature_Fault : 51|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ PCB_Over_temperature_Fault : 52|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Gate_Drive_Board_1_Over_temp_Flt : 53|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Gate_Drive_Board_2_Over_temp_Flt : 54|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Gate_Drive_Board_3_Over_temp_Flt : 55|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Current_Sensor_Fault : 56|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Gate_Driver_Over_Voltage : 57|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Hardware_DC_Bus_Over_voltage_Flt : 60|1@1+ (1,0) [0|1] "" Vector__XXX
+	SG_ Resolver_Not_Connected : 62|1@1+ (1,0) [0|1] "" Vector__XXX
+
+
+CM_ SG_ 2147483819 Hardware_Gate_Desaturation_Fault "Wheel-Based Vehicle Speed: Speed of the vehicle as calculated from wheel or tailshaft speed.";
+BA_DEF_ SG_  "SPN" INT 0 524287;
+BA_DEF_ BO_  "VFrameFormat" ENUM  "StandardCAN","ExtendedCAN","reserved","J1939PG";
+BA_DEF_  "DatabaseVersion" STRING ;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_  "ProtocolType" STRING ;
+BA_DEF_  "DatabaseCompiler" STRING ;
+BA_DEF_DEF_  "SPN" 0;
+BA_DEF_DEF_  "VFrameFormat" "J1939PG";
+BA_DEF_DEF_  "DatabaseVersion" "DEMO PLUS";
+BA_DEF_DEF_  "BusType" "";
+BA_DEF_DEF_  "ProtocolType" "";
+BA_DEF_DEF_  "DatabaseCompiler" "";
+BA_ "ProtocolType" "J1939";
+BA_ "BusType" "CAN";
+BA_ "DatabaseCompiler" "CSS ELECTRONICS (WWW.CSSELECTRONICS.COM)";
+BA_ "DatabaseVersion" "1.0.0";
+BA_ "VFrameFormat" BO_ 2566844926 3;
+BA_ "SPN" SG_ 2566844926 WheelBasedVehicleSpeed 84;

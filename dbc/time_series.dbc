@@ -90,17 +90,6 @@ BO_ 2148139010 GPS_DateTime: 8 Vector__XXX
 	SG_ UTC_Minute : 55|8@0+ (1,0) [0|255] "min" Vector__XXX
 	SG_ UTC_Second : 63|8@0+ (1,0) [0|255] "sec" Vector__XXX
 
-BO_ 2147483819 BMS_POST_Faults: 1 Vector__XXX
-	SG_ Hardware Gate : 0|0@1+ (0,0) [0|0] "" Vector__XXX
-	SG_ Hardware_Gate_Desaturation_Fault : 0|1@1+ (0,0) [0|0] "" Vector__XXX
-	SG_ HW_Over_current_Fault : 1|1@1+ (0,0) [0|0] "" Vector__XXX
-	SG_ Accelerator_Shorted : 2|1@1+ (0,0) [0|0] "" Vector__XXX
-	SG_ Accelerator_Open : 3|1@1+ (0,0) [0|0] "" Vector__XXX
-	SG_ Current_Sensor_Low : 4|1@1+ (0,0) [0|0] "" Vector__XXX
-	SG_ Current_Sensor_High : 5|1@1+ (0,0) [0|0] "" Vector__XXX
-	SG_ Module_Temperature_Low : 6|1@1+ (0,0) [0|0] "" Vector__XXX
-	SG_ Module_Temperature_High : 7|1@1+ (0,0) [0|0] "" Vector__XXX
-
 SIG_VALTYPE_ 2148139008 GPS_Latitude : 1;
 SIG_VALTYPE_ 2148139008 GPS_Longitude : 1;
 
@@ -122,4 +111,3 @@ BA_ "DatabaseCompiler" "CSS ELECTRONICS (WWW.CSSELECTRONICS.COM)";
 BA_ "DatabaseVersion" "1.0.0";
 BA_ "VFrameFormat" BO_ 2364540158 3;
 BA_ "SPN" SG_ 2364540158 EngineSpeed 190;
-BA_ "VFrameFormat" BO_ 2147483819 3;
