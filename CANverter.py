@@ -154,7 +154,7 @@ class CANverter():
                 signalMin = self.signalMinList[signalIndex]
                 signalMax = self.signalMaxList[signalIndex]
                 
-                if  ((signalMin == None or signalValue > signalMin) and (signalMax == None or signalValue < signalMax)):
+                if  ((signalMin == None or signalValue >= signalMin) and (signalMax == None or signalValue <= signalMax)):
                     dps = self.dpsList[signalIndex]
                     if dps != None:
                         try:
@@ -165,10 +165,12 @@ class CANverter():
                         
         return pd.DataFrame([valuesList], columns = self.displaySignalList)
 
-# if __name__ == "__main__":
-    #Sample code on how to use
-    # canverter = CANverter("/Users/nestoreo/ENGS89-90-CAN-Decoder/dbc/test.dbc")
-    # df = canverter.log_to_dataframe("/Users/nestoreo/ENGS89-90-CAN-Decoder/data/SocketCANData.log")
-    # df.to_csv( "/Users/nestoreo/ENGS89-90-CAN-Decoder/data/SDCardDecodedAll.csv")
-    # dfsingle = canverter.decode_message_stream("(0000000347) X 000A0000#422ED0EDC29096B7")
-    # print(dfsingle)
+if __name__ == "__main__":
+    # Sample code on how to use
+    time_series_canverter = CANverter("./dbc/time_series.dbc")
+    df = time_series_canverter.log_to_dataframe("./test_messages/CAN_00012.log")
+    df.to_csv( "./CAN_00012.csv")
+    # df = canverter.log_to_dataframe("./test_messages/POST_Faults.log")
+    # message_canverter = CANverter("./dbc/message./dbc")
+    # dfsingle = message_canverter.decode_message_stream("(0000282789) X 000000AB#FF00000000000000")
+    # dfsingle.to_csv( "./POST_Faults.csv")
