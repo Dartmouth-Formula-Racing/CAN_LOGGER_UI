@@ -8,17 +8,16 @@ from tkinter import Tk
 import plotly.graph_objects as go
 import base64
 import traceback
-import copy
 import pickle
+from getcomponents import *
+import constants
 import json
 
 pn.extension('plotly')
 pn.extension('floatpanel')
 pn.extension('tabulator')
 
-time_field = 'Time (ms)'
-curr_project = projects.Project(time_field)
-curr_project.ts_dataframe = pd.DataFrame(columns=[time_field, 'y'])
+curr_project = projects.Project(constants.TIME_FIELD)
 time_series_canverter = None
 message_canverter = None
 log_file_path = ''
@@ -31,146 +30,12 @@ button_height = 35
 Tk().withdraw()
 root_path = os.path.expanduser("~")
 
-with open("dfr.jpeg","rb") as image_file:
+with open("DFRLOGO.png","rb") as image_file:
     encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
 
 comb_axes_switch = pn.widgets.Switch(name='Switch')
 
-def graphing():
-    # df: csv data dataframe
-    # y: list of attributes from csv we want to graph (dataframe headers)
 
-    # Only handles up to 4...
-    global curr_project
-    
-    ys = column_select_choice.value
-    switch = comb_axes_switch.value
-    x = x_select_choice.value
-    fig = go.Figure()
-    fig.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)', 
-        plot_bgcolor='rgba(0,0,0,0)',    
-        autosize=True
-    )
-    fig.update_xaxes(
-        showline=True,
-        linecolor='black',
-        mirror=True,
-        gridcolor='rgb(180, 180, 180)',
-        zeroline=True,
-        zerolinecolor='rgb(180, 180, 180)'
-    )
-    fig.update_yaxes(
-        showline=True,
-        linecolor='black',
-        mirror=True,
-        gridcolor='rgb(180, 180, 180)',
-        zeroline=True,
-        zerolinecolor='rgb(180, 180, 180)'
-    )
-
-
-    if len(ys) == 0:
-        return fig
-
-    if switch:
-        grouped_plots = {}
-        y_labels = []
-        for column_name in ys:
-            units = column_name.split('(', 1)[1].split(')', 1)[0].strip()
-
-            in_front = column_name.split('(')[0].split()[-1].strip()
-            y_label = f"{in_front} ({units})"
-            
-            if y_label not in y_labels:
-                y_labels.append(y_label)
-
-            if units in grouped_plots:
-                grouped_plots[units].append(column_name)
-            else:
-                grouped_plots[units] = [column_name] 
-        
-        ys = y_labels
-
-        i=1
-        for units in grouped_plots:
-            for column_name in grouped_plots[units]:
-                fig.add_trace(go.Scatter(
-                    x=curr_project.ts_dataframe[x],
-                    y=curr_project.ts_dataframe[column_name],
-                    name=column_name,
-                    yaxis=f"y{i}"
-                )) 
-            i=i+1   
-        signal_num = len(grouped_plots)
-
-    else:
-        i=1
-        for column_name in ys:
-            fig.add_trace(go.Scatter(
-                x=curr_project.ts_dataframe[x],
-                y=curr_project.ts_dataframe[column_name],
-                name=column_name,
-                yaxis=f"y{i}"
-            ))
-            i=i+1
-        signal_num = len(ys)
-    
-    fig.update_layout(
-        xaxis=dict(domain=[0.2, 0.8], title=x),
-    )
-
-    signal_num = len(ys)
-
-    fig.update_layout(
-        yaxis1=dict(
-            title=ys[0],
-        ),   
-    )
-
-    if signal_num >= 2:
-        fig.update_layout(
-            yaxis2=dict(
-                title=ys[1],
-                overlaying="y",
-                side="right",
-            ),   
-        )
-    
-    
-    if signal_num >= 3:
-        fig.update_layout(
-            yaxis3=dict(
-                title=ys[2],
-                anchor="free", 
-                overlaying="y", 
-                autoshift=True,
-            ),   
-        )
-    
-    if signal_num >= 4:
-        fig.update_layout(
-            yaxis4=dict(
-                title=ys[3],
-                anchor="free", 
-                overlaying="y", 
-                autoshift=True,
-                side="right",
-            ),   
-        )    
-
-    # Update layout properties
-    fig.update_layout(
-        legend=dict(
-            orientation='h',
-            yanchor='bottom',
-            y=1.02,
-            xanchor='left',
-            x=0.1
-        )
-    )
-
-    return fig
 
 def build_current_project(log_file_path, project_name):
     global curr_project
@@ -178,7 +43,7 @@ def build_current_project(log_file_path, project_name):
     global message_canverter
 
     curr_project.ts_dataframe = time_series_canverter.log_to_dataframe(log_file_path)
-    curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=time_field)
+    curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=constants.TIME_FIELD)
     curr_project.msg_dict = curr_project.store_msg_df_as_dict(message_canverter.log_to_dataframe(log_file_path).sort_values(by=time_field))
     with open("./PROJECTS/"+project_name+".project", 'wb') as f:
         pickle.dump(curr_project, f)
@@ -276,12 +141,12 @@ def save_csv_callback(event):
         
 def export_data_panel(event):
     csv_export_text.placeholder = root_path
-    float_panel.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=330, contained=False, position="center", theme="#00693e"))
+    update_float_display(float_panel_display, pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=300, width=500, contained=False, position="center", theme="#00693e"))
     if len(csv_export_selection[-1]) > 1:
         csv_export_selection[-1].pop(1)
     
 def import_data_panel(event):
-    float_panel.append(pn.layout.FloatPanel(log_import_selection, name='Create Project', height=420, contained=False, position="center", theme="#00693e"))
+    update_float_display(float_panel_display, pn.layout.FloatPanel(log_import_selection, name='Create Project', height=400, width=500, contained=False, position="center", theme="#00693e"))
     project_name_input_text.placeholder = "Project Name..."
     time_series_dbc_file_input_text.placeholder = root_path
     log_file_input_text.placeholder = root_path
@@ -336,12 +201,12 @@ def update_project(project_name_select):
 def favorites_save_panel(event):
     if len(favorites_save_selection[-1]) > 1:
         favorites_save_selection[-1].pop(1)
-    float_panel.append(pn.layout.FloatPanel(favorites_save_selection, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
+    update_float_display(float_panel_display, pn.layout.FloatPanel(favorites_save_selection, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
 
 def favorites_del_panel(event):
     if len(favorites_del_selection[-1]) > 1:
         favorites_del_selection[-1].pop(1)
-    float_panel.append(pn.layout.FloatPanel(favorites_del_selection, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
+    update_float_display(float_panel_display, pn.layout.FloatPanel(favorites_del_selection, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
 
 def favorites_save(event):
     global favorites_select
@@ -433,29 +298,20 @@ clear_all_columns_btn = pn.widgets.Button(name='Clear all columns', height=butto
 clear_all_columns_btn.on_click(clear_all_columns)
 
 def generate_plot(event):
-    global curr_project
-    global time_field
-    try:
-        final_filter = column_select_choice.value.copy()
-        final_filter.insert(0, time_field)
-        filtered_df = curr_project.ts_dataframe[final_filter]
-        template.main[0][0][0] = pn.WidgetBox(
-            pn.pane.Plotly(graphing(), sizing_mode="stretch_both", margin=10),
-            pn.widgets.Tabulator(filtered_df, show_index = False, page_size=10),
-            float_panel
-        )
-    except Exception as ex:
-        raise ex
+    global current_dataframe
+    plotly_pane.object = update_graph_figure(current_dataframe, column_select_choice.value, x_select_choice.value, comb_axes_switch.value)
+    final_filter = column_select_choice.value.copy()
+    final_filter.insert(0, constants.TIME_FIELD)
+    update_tabulator_display(tabulator_display, pn.widgets.Tabulator(current_dataframe[final_filter], show_index = False, page_size=10, layout='fit_columns', sizing_mode='stretch_width'))
 
 # Create an empty plot using hvplot
-figure = graphing()
+figure = update_graph_figure(current_dataframe, column_select_choice.value, x_select_choice.value, comb_axes_switch.value)
 plotly_pane = pn.pane.Plotly(figure, sizing_mode="stretch_both", margin=10)
 
 generate_plot_btn = pn.widgets.Button(name='Generate plot', height=button_height, align="center")
 generate_plot_btn.on_click(generate_plot)
     
 # Create a tabulator based on the data
-tabulator_pane = pn.widgets.Tabulator(curr_project.ts_dataframe, show_index = False)
 log_import_selection = pn.Column(
     "Name your project, select .log file, and .dbc file",
     pn.Row(
@@ -500,7 +356,6 @@ plot_generation_y = pn.Row(
     pn.layout.VSpacer(),
     column_select_choice,
     pn.layout.VSpacer(),
-    height=80
 )
 
 plot_generation_x = pn.Row(
@@ -526,16 +381,24 @@ user_input_block = pn.Column(
     pn.layout.VSpacer(),
     pn.Tabs(
         ("Manual",
-         pn.Column(
-        plot_generation_x,
-        plot_generation_y,
-        comb_axes,
-        pn.Row(
-            generate_plot_btn,
-            clear_all_columns_btn,
+            pn.Column(
+                pn.Row(
+                    generate_plot_btn,
+                    clear_all_columns_btn,
+                ),
+                pn.Row(
+                favorites_select
+                ),
+                pn.Row(
+                    favorites_save_btn,
+                    favorites_del_btn,
+                ),
+                comb_axes,
+                plot_generation_x,
+                plot_generation_y,
+                margin=(25, 10)
+            )
         ),
-    margin=(25, 10))
-         ),
         ( "Groupings",
             pn.Column(
                 pn.layout.VSpacer(),
@@ -557,30 +420,27 @@ user_input_block = pn.Column(
     max_height=250,
 )
 
-plot_display = pn.layout.Row(
-    plotly_pane,
-    sizing_mode="stretch_both"
-)
-
 template = pn.template.FastListTemplate(
-    title="DFR CAN UI",
+    title="Dartmouth Formula Racing",
     logo=f"data:image/jpeg;base64,{encoded_string}",
     accent="#00693e",
     sidebar=user_input_block,
-    # prevent_collision=True,
+    prevent_collision=True,
     shadow=False
 )
 
-float_panel = pn.Row(height=0, width=0,visible=False)
+plot_display = pn.Row(plotly_pane, min_height=600, sizing_mode="stretch_both")
+tabulator_display = constants.EMPTY_TABULATOR_DISPLAY
+float_panel_display = constants.EMPTY_FLOAT_PANEL_DISPLAY
 
 template.main.append(pn.Tabs(
     ("Visualize Projects", 
-        pn.WidgetBox(
-            plotly_pane, 
-            tabulator_pane,
-            float_panel
-        )
-    ), 
+        pn.Column(
+            plot_display,
+            tabulator_display,
+            float_panel_display
+            )
+        ), 
     ("Real-Time Plotting", 
         pn.WidgetBox(
 
