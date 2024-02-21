@@ -12,6 +12,7 @@ import pickle
 from getcomponents import *
 import constants
 import json
+from pprint import pprint
 
 pn.extension('plotly')
 pn.extension('floatpanel')
@@ -197,6 +198,7 @@ def update_project(project_name_select):
      # Interpolate all columns linearly based on the "time" column
     interpolate_dataframe()
     current_project_name = project_name_select
+    update_message_log()
 
 ####################################################
 def favorites_save_panel(event):
@@ -281,8 +283,14 @@ favorites_del_selection = pn.Column(
     )
 
 ### Message Log
-msg_json = pn.pane.JSON(curr_project.msg_dict, name='JSON')
+msg_json = pn.pane.JSON({'No messages':''}, name='JSON')
 
+def update_message_log():
+    global msg_json
+    global curr_project
+    print("updating json")
+    pprint(curr_project.msg_dict)
+    msg_json.object = curr_project.msg_dict
 
 ####################################################
   
@@ -447,7 +455,7 @@ template.main.append(pn.Tabs(
     ),
         ("Message Log", 
             pn.Column(
-                # msg_json
+                msg_json
             )
         )
     ))

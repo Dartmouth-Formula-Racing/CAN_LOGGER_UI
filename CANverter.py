@@ -35,6 +35,7 @@ class CANverter():
 
 
     def get_decoded_values(self, identifier, data, aggregatedValues):
+        there_is_data = False
         #decode data
         try:
             decodedMessage = self.dbc.decode_message(identifier, data, decode_choices=False)
@@ -53,8 +54,11 @@ class CANverter():
                             except:
                                 pass
                         aggregatedValues[signalIndex].append(signalValue) #save data if within boundary
+                        there_is_data = True
         except:
             pass
+
+        return there_is_data    
         
     def save_dbc_signal_data(self):
         identifierList = [] #CAN Identifiers
@@ -110,11 +114,12 @@ class CANverter():
                 self.get_decoded_values(identifier, data, currentValuesList) #Decode first line
             except:
                 lastTimestamp = -1 #First line was invalid
-                
+
+            there_is_data = False
             for row in logFile:
                 try:
                     (timestamp, identifier, data) = self.get_encoded_pattern(row) #get line timestamp
-                    if (lastTimestamp != timestamp): #if timestamp is different we save the row for the dataframe
+                    if (lastTimestamp != timestamp and there_is_data): #if timestamp is different we save the row for the dataframe
                         averagedValuesList[0] = lastTimestamp #add timestamp to row
                         lastTimestamp = timestamp
 
@@ -133,8 +138,9 @@ class CANverter():
                         dataframeRows.append(averagedValuesList.copy()) #append to dataframe rows
                         currentValuesList = [ [] for _ in range(len(self.signalList)) ] #clear our data lists
                         averagedValuesList = [np.nan] * len(currentValuesList)
+                        there_is_data = False
 
-                    self.get_decoded_values(identifier, data, currentValuesList)
+                    there_is_data = self.get_decoded_values(identifier, data, currentValuesList)
                 except:
                     pass #invalid line
         logFile.close()
