@@ -2,6 +2,7 @@ import panel as pn
 import os
 import pandas as pd
 import CANverter as canvtr
+import projects
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import Tk
 import plotly.graph_objects as go
@@ -9,16 +10,18 @@ import base64
 import traceback
 import copy
 import pickle
+import json
 
 pn.extension('plotly')
 pn.extension('floatpanel')
 pn.extension('tabulator')
 
 time_field = 'Time (ms)'
-current_dataframe = pd.DataFrame(columns=[time_field, 'y'])
-canverter = None
+curr_project = projects.Project(time_field)
+curr_project.ts_dataframe = pd.DataFrame(columns=[time_field, 'y'])
+time_series_canverter = None
+message_canverter = None
 log_file_path = ''
-dbc_file_path = ''
 csv_file_path = ''
 project_options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
 current_project_name = ''
@@ -38,7 +41,7 @@ def graphing():
     # y: list of attributes from csv we want to graph (dataframe headers)
 
     # Only handles up to 4...
-    global current_dataframe
+    global curr_project
     
     ys = column_select_choice.value
     switch = comb_axes_switch.value
@@ -93,8 +96,8 @@ def graphing():
         for units in grouped_plots:
             for column_name in grouped_plots[units]:
                 fig.add_trace(go.Scatter(
-                    x=current_dataframe[x],
-                    y=current_dataframe[column_name],
+                    x=curr_project.ts_dataframe[x],
+                    y=curr_project.ts_dataframe[column_name],
                     name=column_name,
                     yaxis=f"y{i}"
                 )) 
@@ -105,8 +108,8 @@ def graphing():
         i=1
         for column_name in ys:
             fig.add_trace(go.Scatter(
-                x=current_dataframe[x],
-                y=current_dataframe[column_name],
+                x=curr_project.ts_dataframe[x],
+                y=curr_project.ts_dataframe[column_name],
                 name=column_name,
                 yaxis=f"y{i}"
             ))
@@ -169,41 +172,49 @@ def graphing():
 
     return fig
 
-def build_current_dataframe(selected_file_path, project_name):
-    global current_dataframe
-    global canverter
+def build_current_project(log_file_path, project_name):
+    global curr_project
+    global time_series_canverter
+    global message_canverter
 
-    current_dataframe = canverter.log_to_dataframe(selected_file_path)
-    current_dataframe = current_dataframe.sort_values(by=time_field)
-    current_dataframe.to_pickle("./PROJECTS/"+project_name+".project")
+    curr_project.ts_dataframe = time_series_canverter.log_to_dataframe(log_file_path)
+    curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=time_field)
+    curr_project.msg_dict = curr_project.store_msg_df_as_dict(message_canverter.log_to_dataframe(log_file_path).sort_values(by=time_field))
+    with open("./PROJECTS/"+project_name+".project", 'wb') as f:
+        pickle.dump(curr_project, f)
 
     interpolate_dataframe()
     
 
 def interpolate_dataframe():
-    global current_dataframe
+    global curr_project
     
     # Interpolate all columns linearly based on the "time" column
 
-    if 'Time (s)' not in current_dataframe.columns:
-        current_dataframe.insert(0, 'Time (s)', current_dataframe['Time (ms)'] / 1000)
+    if 'Time (s)' not in curr_project.ts_dataframe.columns:
+        curr_project.ts_dataframe.insert(0, 'Time (s)', curr_project.ts_dataframe['Time (ms)'] / 1000)
 
-    current_dataframe = current_dataframe.interpolate(method='linear', axis=0)
-    all_columns = current_dataframe.columns.tolist()
+    curr_project.ts_dataframe = curr_project.ts_dataframe.interpolate(method='linear', axis=0)
+    all_columns = curr_project.ts_dataframe.columns.tolist()
     x_select_choice.options = all_columns
 
     columns_to_remove = ['Time (s)', 'Time (ms)']
-    copy_current_dataframe = current_dataframe.drop(columns=columns_to_remove)
+    copy_current_dataframe = curr_project.ts_dataframe.drop(columns=columns_to_remove)
     y_columns = copy_current_dataframe.columns.tolist()
     column_select_choice.options = y_columns
     
 
-def dbc_file_picker_callback(event):
-    global dbc_file_path
-    global canverter
-    dbc_file_path = askopenfilename(title = "Select DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
-    dbc_file_input_text.value = dbc_file_path
-    canverter = canvtr.CANverter(dbc_file_path)
+def time_series_dbc_file_picker_callback(event):
+    global time_series_canverter
+    time_series_dbc_file_path = askopenfilename(title = "Select Time Series DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
+    time_series_dbc_file_input_text.value = time_series_dbc_file_path
+    time_series_canverter = canvtr.CANverter(time_series_dbc_file_path)
+
+def message_dbc_file_picker_callback(event):
+    global message_canverter
+    message_dbc_file_path = askopenfilename(title = "Select Message DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
+    message_dbc_file_input_text.value = message_dbc_file_path
+    message_canverter = canvtr.CANverter(message_dbc_file_path)
 
 def data_file_picker_callback(event):
     global log_file_path
@@ -211,8 +222,7 @@ def data_file_picker_callback(event):
     log_file_input_text.value = log_file_path
     
 def import_data_callback(event):
-    global canverter
-    global current_dataframe
+    global time_series_canverter
     global log_file_path
     if len(log_import_selection[-1]) > 1:
         log_import_selection[-1].pop(1)
@@ -224,10 +234,10 @@ def import_data_callback(event):
         project_name = project_name_input_text.value.replace(" ", "").lower()
         if project_name != None and project_name != '':
             if (file_extension == 'log'):
-                if (canverter == None):
+                if (time_series_canverter == None):
                     print('Handle case later')
                 else:
-                    build_current_dataframe(log_file_path, project_name)
+                    build_current_project(log_file_path, project_name)
                     project_name_select.options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
                     project_name_input_text.value = ""
             elif (file_extension == 'pkl'):
@@ -247,7 +257,7 @@ def csv_file_picker_callback(event):
     csv_export_text.value = csv_file_path
 
 def save_csv_callback(event):
-    global current_dataframe
+    global curr_project
     global csv_file_path
     global current_project_name
     csv_file_path = csv_export_text.value
@@ -256,7 +266,7 @@ def save_csv_callback(event):
     csv_export_selection[-1].append("Exporting Data...")
     try:
         if interpolate_csv_btn.value:
-            current_dataframe.to_csv(csv_file_path)
+            curr_project.ts_dataframe.to_csv(csv_file_path)
         else:
             pd.read_pickle("./PROJECTS/"+current_project_name+".project").to_csv(csv_file_path)
         csv_file_path = ''
@@ -266,14 +276,14 @@ def save_csv_callback(event):
         
 def export_data_panel(event):
     csv_export_text.placeholder = root_path
-    float_panel.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=300, width=500, contained=False, position="center", theme="#00693e"))
+    float_panel.append(pn.layout.FloatPanel(csv_export_selection, name='Export to CSV', height=330, contained=False, position="center", theme="#00693e"))
     if len(csv_export_selection[-1]) > 1:
         csv_export_selection[-1].pop(1)
     
 def import_data_panel(event):
-    float_panel.append(pn.layout.FloatPanel(log_import_selection, name='Import Data', height=400, width=500, contained=False, position="center", theme="#00693e"))
+    float_panel.append(pn.layout.FloatPanel(log_import_selection, name='Create Project', height=420, contained=False, position="center", theme="#00693e"))
     project_name_input_text.placeholder = "Project Name..."
-    dbc_file_input_text.placeholder = root_path
+    time_series_dbc_file_input_text.placeholder = root_path
     log_file_input_text.placeholder = root_path
     if len(log_import_selection[-1]) > 1:
         log_import_selection[-1].pop(1)
@@ -284,34 +294,40 @@ choose_csv_file_btn = pn.widgets.Button(name='Choose a file', height=50,align='c
 choose_csv_file_btn.on_click(csv_file_picker_callback)
 save_csv_button = pn.widgets.Button(name='Save', height=50)
 save_csv_button.on_click(save_csv_callback)
-export_data_panel_btn = pn.widgets.Button(name='Export Data', align="center",height=35)
+export_data_panel_btn = pn.widgets.Button(name='Export Project', align="center",height=35)
 export_data_panel_btn.on_click(export_data_panel)
 interpolate_csv_btn = pn.widgets.Checkbox(name='Interpolate Data')
 
 # IMPORT_DATA FUNCTION WIDGETS
-import_data_panel_btn = pn.widgets.Button(name='Import Data',align="center",height=35)
+import_data_panel_btn = pn.widgets.Button(name='Create Project',align="center",height=35)
 import_data_panel_btn.on_click(import_data_panel)
-dbc_file_btn = pn.widgets.Button(name='Upload .dbc file', height=50)
-dbc_file_btn.on_click(dbc_file_picker_callback)
+time_series_dbc_file_btn = pn.widgets.Button(name='Upload time series .dbc file', height=50)
+time_series_dbc_file_btn.on_click(time_series_dbc_file_picker_callback)
+message_dbc_file_btn = pn.widgets.Button(name='Upload message .dbc file', height=50)
+message_dbc_file_btn.on_click(message_dbc_file_picker_callback)
 data_file_btn = pn.widgets.Button(name='Upload .log file', height=50)
 data_file_btn.on_click(data_file_picker_callback)
-dbc_file_input_text = pn.widgets.TextInput(placeholder=root_path)
-log_file_input_text = pn.widgets.TextInput(placeholder=root_path)
-project_name_input_text = pn.widgets.TextInput(name="Project Name", placeholder = "Project Name...")
-import_data_button = pn.widgets.Button(name='Import Project', height=50)
+time_series_dbc_file_input_text = pn.widgets.TextInput(placeholder=root_path, height = 50)
+message_dbc_file_input_text = pn.widgets.TextInput(placeholder=root_path, height = 50)
+log_file_input_text = pn.widgets.TextInput(placeholder=root_path, height = 50)
+project_name_input_text = pn.widgets.TextInput(name="Project Name", placeholder = "Project Name...", height=70)
+import_data_button = pn.widgets.Button(name='Create Project', height=50)
 import_data_button.on_click(import_data_callback)
 
 #SELECT PROJECT FUNCTION WIDGETS
 project_name_select = pn.widgets.Select(name='Select Project',options=project_options, align="center")
 @pn.depends(project_name_select.param.value, watch=True)
 def update_project(project_name_select):
-    global current_dataframe
+    global curr_project
     global current_project_name
     
     column_select_choice.name = "Y Variables for "+project_name_select
     x_select_choice.name = "X Variable for "+project_name_select
     column_select_choice.value = []
-    current_dataframe = pd.read_pickle("./PROJECTS/"+project_name_select+".project")
+
+    with open("./PROJECTS/"+project_name_select+".project", 'rb') as f:
+        curr_project = pickle.load(f)
+    
      # Interpolate all columns linearly based on the "time" column
     interpolate_dataframe()
     current_project_name = project_name_select
@@ -398,6 +414,11 @@ favorites_del_selection = pn.Column(
     pn.Row(favorites_delete),
     pn.Row(group_del_btn)
     )
+
+### Message Log
+msg_json = pn.pane.JSON(curr_project.msg_dict, name='JSON')
+
+
 ####################################################
   
 column_select_choice = pn.widgets.MultiChoice(name="Y Variables for "+project_name_select.value, value=[],
@@ -412,12 +433,12 @@ clear_all_columns_btn = pn.widgets.Button(name='Clear all columns', height=butto
 clear_all_columns_btn.on_click(clear_all_columns)
 
 def generate_plot(event):
-    global current_dataframe
+    global curr_project
     global time_field
     try:
         final_filter = column_select_choice.value.copy()
         final_filter.insert(0, time_field)
-        filtered_df = current_dataframe[final_filter]
+        filtered_df = curr_project.ts_dataframe[final_filter]
         template.main[0][0][0] = pn.WidgetBox(
             pn.pane.Plotly(graphing(), sizing_mode="stretch_both", margin=10),
             pn.widgets.Tabulator(filtered_df, show_index = False, page_size=10),
@@ -434,15 +455,19 @@ generate_plot_btn = pn.widgets.Button(name='Generate plot', height=button_height
 generate_plot_btn.on_click(generate_plot)
     
 # Create a tabulator based on the data
-tabulator_pane = pn.widgets.Tabulator(current_dataframe, show_index = False)
+tabulator_pane = pn.widgets.Tabulator(curr_project.ts_dataframe, show_index = False)
 log_import_selection = pn.Column(
     "Name your project, select .log file, and .dbc file",
     pn.Row(
         project_name_input_text,
     ),
     pn.Row(
-        dbc_file_input_text,
-        dbc_file_btn,
+        time_series_dbc_file_input_text,
+        time_series_dbc_file_btn,
+    ),
+    pn.Row(
+        message_dbc_file_input_text,
+        message_dbc_file_btn,
     ),
     pn.Row(
         log_file_input_text,
@@ -542,7 +567,7 @@ template = pn.template.FastListTemplate(
     logo=f"data:image/jpeg;base64,{encoded_string}",
     accent="#00693e",
     sidebar=user_input_block,
-    prevent_collision=True,
+    # prevent_collision=True,
     shadow=False
 )
 
@@ -554,9 +579,18 @@ template.main.append(pn.Tabs(
             plotly_pane, 
             tabulator_pane,
             float_panel
-            )
-        ), 
+        )
+    ), 
     ("Real-Time Plotting", 
-        pn.WidgetBox())))
+        pn.WidgetBox(
+
+        )
+    ),
+        ("Message Log", 
+            pn.Column(
+                # msg_json
+            )
+        )
+    ))
 
 template.servable()
