@@ -9,4 +9,3 @@ class Project():
 
     def store_msg_df_as_dict(self, msg_df):
         self.msg_dict = msg_df.to_dict(orient='index')
-        pprint(self.msg_dict)

@@ -214,7 +214,6 @@ def update_project(project_name_select):
 
     with open("./PROJECTS/"+project_name_select+".project", 'rb') as f:
         curr_project = pickle.load(f)
-    pprint(curr_project.msg_dict)
     
      # Interpolate all columns linearly based on the "time" column
     interpolate_dataframe()
@@ -304,7 +303,21 @@ favorites_del_selection = pn.Column(
     )
 
 ### Message Log
-msg_json = pn.pane.JSON({'No messages':''}, name='message log', sizing_mode='stretch_width', theme='light', hover_preview=True)
+json_css = '''
+.json-formatter-constructor-name {
+    color: LightGray !important;
+}
+.json-formatter-key {
+    color: black !important;
+}
+.json-formatter-number {
+    color: #00693e !important;
+}
+'''
+
+msg_json = pn.pane.JSON({'No messages':''}, name='message log', sizing_mode='stretch_width', theme='light') #, hover_preview=True)
+
+pn.config.raw_css.append(json_css)
 
 def update_message_log():
     global msg_json
