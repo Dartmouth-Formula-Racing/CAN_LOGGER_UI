@@ -9,23 +9,22 @@ import traceback
 import pickle
 from getcomponents import *
 from constants import *
-import json
-from pprint import pprint
 
 pn.extension('plotly')
-pn.extension('floatpanel')
 pn.extension('tabulator')
-#pn.extension(design='material', global_css=[':root { --design-primary-color: "#00693e"; }'])
+pn.extension('floatpanel')
+pn.extension(notifications=True)
+Tk().withdraw()
+pn.state.notifications.position = 'bottom-right'
 
-curr_project = projects.Project(TIME_FIELD)
+curr_project = projects.Project(TIME_MILLISECOND_FIELD)
 time_series_canverter = None
 message_canverter = None
-log_file_path = ''
-csv_file_path = ''
+log_file_path = EMPTY_STRING
+csv_file_path = EMPTY_STRING
 project_options = get_projects()
-current_project_name = ''
+current_project_name = EMPTY_STRING
 favorites_options = get_favorites()
-Tk().withdraw()
 
 def build_current_project(log_file_path, project_name):
     global curr_project
@@ -33,50 +32,54 @@ def build_current_project(log_file_path, project_name):
     global message_canverter
 
     curr_project.ts_dataframe = time_series_canverter.log_to_dataframe(log_file_path)
-    curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=TIME_FIELD)
-    msg_df = message_canverter.log_to_dataframe(log_file_path).sort_values(by=TIME_FIELD).set_index(TIME_FIELD)
+    curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=TIME_MILLISECOND_FIELD)
+    msg_df = message_canverter.log_to_dataframe(log_file_path).sort_values(by=TIME_MILLISECOND_FIELD).set_index(TIME_MILLISECOND_FIELD)
     curr_project.store_msg_df_as_dict(msg_df)
-    with open("./PROJECTS/"+project_name+".project", 'wb') as f:
-        pickle.dump(curr_project, f)
-
+    with open(PROJECTS_DIRECTORY_STRING+project_name+".project", 'wb') as project:
+        pickle.dump(curr_project, project)
     interpolate_dataframe()
     
 def interpolate_dataframe():
     global curr_project
 
-    if 'Time (s)' not in curr_project.ts_dataframe.columns:
-        curr_project.ts_dataframe.insert(0, 'Time (s)', curr_project.ts_dataframe['Time (ms)'] / 1000)
+    if TIME_SECOND_FIELD not in curr_project.ts_dataframe.columns:
+        curr_project.ts_dataframe.insert(0, TIME_SECOND_FIELD, curr_project.ts_dataframe[TIME_MILLISECOND_FIELD] / 1000)
 
     curr_project.ts_dataframe = curr_project.ts_dataframe.interpolate(method='linear', axis=0)
     all_columns = curr_project.ts_dataframe.columns.tolist()
     x_axis_field_select.options = all_columns
 
-    columns_to_remove = ['Time (s)', 'Time (ms)']
+    columns_to_remove = [TIME_SECOND_FIELD, TIME_MILLISECOND_FIELD]
     copy_current_dataframe = curr_project.ts_dataframe.drop(columns=columns_to_remove)
     y_columns = copy_current_dataframe.columns.tolist()
     y_axes_field_multiselect.options = y_columns
-    
+
+def update_message_log():
+    global msg_json
+    global curr_project
+    msg_json.object = curr_project.msg_dict
+       
 """
-############################ COMPONENT CALLBACKS ##################################
+############################ FLOAT CALLBACKS ##################################
 """
 def time_series_dbc_file_btn_callback(event):
     global time_series_canverter
-    time_series_dbc_file_path = askopenfilename(title = "Select Time Series DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
-    if time_series_dbc_file_path != '':
+    time_series_dbc_file_path = askopenfilename(title = "Select Time Series DBC File",filetypes = DBC_FILE_TYPES) 
+    if time_series_dbc_file_path != EMPTY_STRING:
         time_series_dbc_file_input_text.value = time_series_dbc_file_path
         time_series_canverter = canvtr.CANverter(time_series_dbc_file_path)
 
 def message_dbc_file_btn_callback(event):
     global message_canverter
-    message_dbc_file_path = askopenfilename(title = "Select Message DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
-    if message_dbc_file_path != '':
+    message_dbc_file_path = askopenfilename(title = "Select Message DBC File",filetypes = DBC_FILE_TYPES) 
+    if message_dbc_file_path != EMPTY_STRING:
         message_dbc_file_input_text.value = message_dbc_file_path
         message_canverter = canvtr.CANverter(message_dbc_file_path)
 
 def data_file_btn_callback(event):
     global log_file_path
-    log_file_path = askopenfilename(title = "Select Data File",filetypes = (("Data Files","*.log"),("all files","*.*"))) 
-    if log_file_input_text != '':
+    log_file_path = askopenfilename(title = "Select Data File",filetypes = LOG_FILE_TYPES) 
+    if log_file_input_text != EMPTY_STRING:
         log_file_input_text.value = log_file_path
     
 def create_project_button_callback(event):
@@ -86,46 +89,45 @@ def create_project_button_callback(event):
     global time_series_dbc_file_input_text
     global message_dbc_file_input_text
     global project_name_input_text
-
-    if len(create_project_float_panel[-1]) > 1:
-        create_project_float_panel[-1].pop(1)
-    create_project_float_panel[-1].append("Importing Data...")
+    import_notification = pn.state.notifications.info("Importing Data", duration=INFO_NOTIFICATION_DURATION)
     try:
         # Get the file extension
         log_file_path = log_file_input_text.value
         file_extension = log_file_path.split(".")[-1].lower()
         project_name = project_name_input_text.value.replace(" ", "_").lower()
-        if project_name != None and project_name != '':
+        if project_name != None and project_name != EMPTY_STRING:
             if (file_extension == 'log'):
                 if (time_series_canverter == None):
                     try:
                         time_series_canverter = canvtr.CANverter(time_series_dbc_file_input_text.value)
                     except Exception as ex:
-                        create_project_float_panel[-1][-1]= ("Importing Failed. Please provide a valid time series .dbc file.")
+                        pn.state.notifications.error("Importing Failed. Please provide a valid time series .dbc file.", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
                         raise ex
                 if (message_canverter == None):
                     try:
                         message_canverter = canvtr.CANverter(message_dbc_file_input_text.value)
                     except Exception as ex:
-                        create_project_float_panel[-1][-1]= ("Importing Failed. Please provide a valid message .dbc file.")
+                        pn.state.notifications.error("Importing Failed. Please provide a valid message .dbc file.", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
                         raise ex
                 build_current_project(log_file_path, project_name)
                 project_name_select.options = get_projects()
-                project_name_input_text.value = ""
-                time_series_dbc_file_input_text = ""
-                message_dbc_file_input_text = ""
-                project_name_input_text = ""
+                project_name_input_text.value = EMPTY_STRING
+                time_series_dbc_file_input_text = EMPTY_STRING
+                message_dbc_file_input_text = EMPTY_STRING
+                project_name_input_text = EMPTY_STRING
             else:
-                create_project_float_panel[-1][-1]= ("Importing Failed. Please provide a valid .log file")
+                pn.state.notifications.error("Importing Failed. Please provide a valid .log file", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
                 raise Exception
-            create_project_float_panel[-1][-1]= ("Importing Successful!")
+            import_notification.destroy()
+            pn.state.notifications.success("Importing Successful!", SUCCESS_NOTIFICATION_MILLISECOND_DURATION)
     except Exception as e:
         traceback.print_exc()
-        create_project_float_panel[-1][-1]= ("Importing Failed!")
+        import_notification.destroy()
+        pn.state.notifications.error("Importing Failed!", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
 
 def choose_csv_file_btn_callback(event):
     global csv_file_path
-    csv_file_path = asksaveasfilename(title = "Save Exported CSV File", filetypes = (("CSV Files","*.csv"),("all files","*.*")))
+    csv_file_path = asksaveasfilename(title = "Save Exported CSV File", filetypes = CSV_FILE_TYPES)
     csv_export_text.value = csv_file_path
 
 def save_csv_button_callback(event):
@@ -133,112 +135,72 @@ def save_csv_button_callback(event):
     global csv_file_path
     global current_project_name
     csv_file_path = csv_export_text.value
-    if len(export_project_float_panel[-1]) > 1:
-        export_project_float_panel[-1].pop(1)
-    export_project_float_panel[-1].append("Exporting Data...")
+    pn.state.notifications.info("Exporting Data...", duration=INFO_NOTIFICATION_DURATION)
     try:
         if interpolate_csv_btn.value:
             curr_project.ts_dataframe.to_csv(csv_file_path)
         else:
-            pd.read_pickle("./PROJECTS/"+current_project_name+".project").to_csv(csv_file_path)
-        csv_file_path = ''
-        export_project_float_panel[-1][-1]= ("Export Successful!")
+            pd.read_pickle(PROJECTS_DIRECTORY_STRING+current_project_name+".project").to_csv(csv_file_path)
+        csv_file_path = EMPTY_STRING
+        pn.state.notifications.success("Export Successful!", duration=SUCCESS_NOTIFICATION_MILLISECOND_DURATION)
     except:
-        export_project_float_panel[-1][-1]= ("Export Failed!")
+        pn.state.notifications.error("Export Failed!", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
         
-def export_data_panel_btn_callback(event):
-    csv_export_text.placeholder = USER_ROOT_PATH
-    update_float_display(float_panel_display, pn.layout.FloatPanel(export_project_float_panel, name='Export to CSV', height=300, width=500, contained=False, position="center", theme="#00693e"))
-    if len(export_project_float_panel[-1]) > 1:
-        export_project_float_panel[-1].pop(1)
-    
-def create_new_project_float_btn_callback(event):
-    update_float_display(float_panel_display, pn.layout.FloatPanel(create_project_float_panel, name='Create Project', height=440, contained=False, position="center", theme="#00693e"))
-    project_name_input_text.placeholder = "Project Name..."
-    time_series_dbc_file_input_text.placeholder = USER_ROOT_PATH
-    log_file_input_text.placeholder = USER_ROOT_PATH
-    if len(create_project_float_panel[-1]) > 1:
-        create_project_float_panel[-1].pop(1)
-    update_message_log()
-
-####################################################
-def favorites_save_btn_callback(event):
-    if len(save_groupings_float_panel[-1]) > 1:
-        save_groupings_float_panel[-1].pop(1)
-    update_float_display(float_panel_display, pn.layout.FloatPanel(save_groupings_float_panel, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
-
-def favorites_del_btn_callback(event):
-    if len(delete_groupings_float_panel[-1]) > 1:
-        delete_groupings_float_panel[-1].pop(1)
-    update_float_display(float_panel_display, pn.layout.FloatPanel(delete_groupings_float_panel, name='Save Signal Grouping', height=200, width=500, contained=False, position="center", theme="#00693e"))
-
 def group_save_float_btn_callback(event):
     global favorites_select
     signals = y_axes_field_multiselect.value
-
-    if len(save_groupings_float_panel[-1]) > 1:
-        save_groupings_float_panel[-1].pop(1)
-    save_groupings_float_panel[-1].append("Saving Data...")
-
-    if not os.path.exists('FAVORITES'):
-        os.makedirs('FAVORITES')
-    
+    pn.state.notifications.info("Saving Data...", duration=INFO_NOTIFICATION_DURATION)
     try:
-        with open('./FAVORITES/'+ group_name.value + '.pkl','wb') as f:
+        with open(FAVORITES_DIRECTORY_STRING+ group_name.value + '.pkl','wb') as f:
             pickle.dump(signals,f)
-        save_groupings_float_panel[-1][-1] = ('Saving Successful!')
+        pn.state.notifications.success("Saving Successful!", duration=SUCCESS_NOTIFICATION_MILLISECOND_DURATION)
     except:
-        save_groupings_float_panel[-1][-1] = ('Saving Failed!')
+        pn.state.notifications.error("Saving Failed!", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
 
     favorites_select.options = get_favorites()
     favorites_delete.options = get_favorites()
 
 def delete_grouping_float_btn_callback(event):
     global favorites_select
-    
-    if len(delete_groupings_float_panel[-1]) > 1:
-        delete_groupings_float_panel[-1].pop(1)
-    delete_groupings_float_panel[-1].append("Deleting Data...")
-
+    pn.state.notifications.info("Deleting Data...", duration=INFO_NOTIFICATION_DURATION)
     try:
-        os.remove('./FAVORITES/' + favorites_delete.value + '.pkl')
-        delete_groupings_float_panel[-1][-1] = ('Deleting Successful!')
+        os.remove(FAVORITES_DIRECTORY_STRING + favorites_delete.value + '.pkl')
+        pn.state.notifications.success("Deleting Successful!", duration=SUCCESS_NOTIFICATION_MILLISECOND_DURATION)
     except:
-        delete_groupings_float_panel[-1][-1] = ('Deleting Failed!')
+        pn.state.notifications.error("Deleting Failed!", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
 
-    favorites_select.options = get_favorites() #Update dropdown menu
+    favorites_select.options = get_favorites()
     favorites_delete.options = get_favorites()
+    
+"""
+############################ SIDEBAR CALLBACKS ##################################
+"""
+def export_project_float_btn_callback(event):
+    csv_export_text.placeholder = USER_ROOT_PATH
+    update_float_display(float_panel_display, create_float_panel(export_project_float_panel, 'Export to CSV', height=EXPORT_PROJECT_FLOAT_PANEL_HEIGHT))
 
-### Message Log
-json_css = '''
-.json-formatter-constructor-name {
-    color: LightGray !important;
-}
-.json-formatter-key {
-    color: black !important;
-}
-.json-formatter-number {
-    color: #00693e !important;
-}
-'''
-
-msg_json = pn.pane.JSON({'No messages':''}, name='message log', sizing_mode='stretch_width', theme='light') #, hover_preview=True)
-
-pn.config.raw_css.append(json_css)
-
-def update_message_log():
-    global msg_json
-    global curr_project
-    msg_json.object = curr_project.msg_dict
+def create_project_float_btn_callback(event):
+    update_float_display(float_panel_display, create_float_panel(create_project_float_panel, name='Create Project', height=CREATE_PROJECT_FLOAT_PANEL_HEIGHT))
+    project_name_input_text.placeholder = "Project Name..."
+    time_series_dbc_file_input_text.placeholder = USER_ROOT_PATH
+    log_file_input_text.placeholder = USER_ROOT_PATH
+    update_message_log()
+    
 def clear_all_columns_btn_callback(event):
     y_axes_field_multiselect.value = []
 
 def generate_plot_btn_callback(event):
     global curr_project
-    plotly_pane.object = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, comb_axes_switch.value)
+    plotly_pane.object = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value)
     final_filter = y_axes_field_multiselect.value.copy()
-    final_filter.insert(0, TIME_FIELD)
-    update_tabulator_display(tabulator_display, pn.widgets.Tabulator(curr_project.ts_dataframe[final_filter], show_index = False, page_size=10, layout='fit_columns', sizing_mode='stretch_width'))
+    final_filter.insert(0, TIME_MILLISECOND_FIELD)
+    update_tabulator_display(tabulator_display, pn.widgets.Tabulator(curr_project.ts_dataframe[final_filter], show_index = False, page_size=TABULATOR_PAGE_SIZE, layout='fit_columns', sizing_mode='stretch_width'))
+
+def favorites_save_btn_callback(event):
+    update_float_display(float_panel_display, create_float_panel(save_groupings_float_panel, name='Save Signal Grouping', height=GROUPING_FLOAT_PANEL_HEIGHT))
+
+def favorites_del_btn_callback(event):
+    update_float_display(float_panel_display, create_float_panel(delete_groupings_float_panel, name='Save Signal Grouping', height=GROUPING_FLOAT_PANEL_HEIGHT))
 
 """
 ############################ SIDEBAR COMPONENTS ##################################
@@ -246,51 +208,47 @@ def generate_plot_btn_callback(event):
 project_name_select = pn.widgets.Select(name='Select Project',options=project_options, align="center")
 @pn.depends(project_name_select.param.value, watch=True)
 def update_project(project_name_select):
-    """
-    On-change function for project name select
-    """
     global curr_project, current_project_name
     y_axes_field_multiselect.name = "Y axes fields for "+project_name_select
     x_axis_field_select.name = "X axis field for "+project_name_select
     y_axes_field_multiselect.value = []
-    x_axis_field_select.value = TIME_FIELD
-    with open("./PROJECTS/"+project_name_select+".project", 'rb') as project:
+    x_axis_field_select.value = TIME_MILLISECOND_FIELD
+    with open(PROJECTS_DIRECTORY_STRING+project_name_select+".project", 'rb') as project:
         curr_project = pickle.load(project)
-        
     interpolate_dataframe()
     current_project_name = project_name_select
 
 favorites_select = pn.widgets.Select(name='Signal Groupings',options=favorites_options)
 @pn.depends(favorites_select.param.value, watch=True)
 def favorites_load(favorites_select):
-    """
-    On-change function for favorites select
-    """
-    with open('./FAVORITES/'+ favorites_select + '.pkl','rb') as f:
-        y_axes_field_multiselect.value = pickle.load(f)
+    try:
+        with open(FAVORITES_DIRECTORY_STRING+ favorites_select + '.pkl','rb') as f:
+            y_axes_field_multiselect.value = pickle.load(f)
+    except:
+        y_axes_field_multiselect.value = []
         
 clear_all_columns_btn = create_button(clear_all_columns_btn_callback, 'Clear all columns', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 generate_plot_btn = create_button(generate_plot_btn_callback, 'Generate plot', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 create_project_button = create_button(create_project_button_callback, 'Create Project', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
-create_new_project_float_btn = create_button(create_new_project_float_btn_callback, 'Create Project',  SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
-export_data_panel_btn = create_button(export_data_panel_btn_callback, 'Export Project', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
-comb_axes_switch_name = pn.widgets.StaticText(name='Combine Y-Axes', value='')
+create_project_float_btn = create_button(create_project_float_btn_callback, 'Create Project',  SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
+export_project_float_btn = create_button(export_project_float_btn_callback, 'Export Project', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
+combine_axes_switch_name = pn.widgets.StaticText(name='Combine Y-Axes', value=EMPTY_STRING)
 combine_axes_tooltip = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button below to implement changes", width=20)
 y_axes_field_multiselect = pn.widgets.MultiChoice(name="Y Variables for "+project_name_select.value, value=[],options=[], align="center")
 x_axis_field_select = pn.widgets.Select(name="X Variable for "+project_name_select.value,options=[])
 favorites_save_btn = create_button(favorites_save_btn_callback, 'Save Grouping', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 favorites_del_btn = create_button(favorites_del_btn_callback, 'Delete Grouping', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
-comb_axes_switch = pn.widgets.Switch(name='Switch')
+combine_axes_switch = pn.widgets.Switch(name='Switch')
 
 main_sidebar = pn.Column(
-    pn.Row(create_new_project_float_btn, export_data_panel_btn, height=SIDEBAR_ROW_HEIGHT),
+    pn.Row(create_project_float_btn, export_project_float_btn, height=SIDEBAR_ROW_HEIGHT),
     pn.Row(project_name_select, height=SIDEBAR_ROW_HEIGHT),
     pn.Tabs(("Manual",
                 pn.Column(
                     pn.Row(generate_plot_btn, clear_all_columns_btn, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(favorites_select,  height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(favorites_save_btn, favorites_del_btn, height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(comb_axes_switch_name, combine_axes_tooltip, comb_axes_switch, height = SIDEBAR_ROW_HEIGHT),
+                    pn.Row(combine_axes_switch_name, combine_axes_tooltip, combine_axes_switch, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(x_axis_field_select, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(y_axes_field_multiselect, height = SIDEBAR_ROW_HEIGHT),
                 )
@@ -313,7 +271,7 @@ favorites_delete = pn.widgets.Select(name='Signal Groupings', options=favorites_
 
 #Save Grouping Float Panel Components
 group_save_float_btn = create_button(group_save_float_btn_callback, 'Save', FLOAT_PANEL_BUTTON_HEIGHT)
-group_name = pn.widgets.TextInput(name='', placeholder='Enter a name here...')
+group_name = pn.widgets.TextInput(name=EMPTY_STRING, placeholder='Enter a name here...')
 
 #Create New Project Float Panel Components
 time_series_dbc_file_btn = create_button(time_series_dbc_file_btn_callback, 'Upload .dbc file',  FLOAT_PANEL_BUTTON_HEIGHT, FLOAT_PANEL_ROW_HEIGHT)
@@ -334,7 +292,7 @@ interpolate_csv_btn = pn.widgets.Checkbox(name='Interpolate Data')
 delete_groupings_float_panel = pn.Column(
     pn.Row("Select a signal grouping to delete:", height=FLOAT_PANEL_TEXT_ROW_HEIGHT),
     pn.Row(favorites_delete, height = FLOAT_PANEL_ROW_HEIGHT),
-    pn.Row(delete_grouping_float_btn, height = FLOAT_PANEL_ROW_HEIGHT)
+    pn.Row(delete_grouping_float_btn, height = FLOAT_PANEL_ROW_HEIGHT),
 )
 
 #Save Groupings Float Panel
@@ -366,38 +324,27 @@ export_project_float_panel = pn.Column(
 """
 ############################ MAIN COMPONENTS ##################################
 """
-figure = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, comb_axes_switch.value)
+figure = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value)
 plotly_pane = pn.pane.Plotly(figure, sizing_mode="stretch_both")
-plot_display = pn.Row(plotly_pane, min_height=600, sizing_mode="stretch_both")
+plot_display = pn.Row(plotly_pane, min_height=PLOT_MIN_HEIGHT, sizing_mode="stretch_both")
 tabulator_display = EMPTY_TABULATOR_DISPLAY
 float_panel_display = EMPTY_FLOAT_PANEL_DISPLAY
+msg_json = pn.pane.JSON({'No messages':EMPTY_STRING}, name='message log', sizing_mode='stretch_width', theme='light') #, hover_preview=True)
 
 template = pn.template.FastListTemplate(
     title="Dartmouth Formula Racing",
     logo=f"data:image/jpeg;base64,{LOGO_ENCODED_STRING}",
-    accent="#00693e",
+    accent=UI_THEME_COLOR,
     sidebar=main_sidebar,
     shadow=False
 )
 
 template.main.append(pn.Tabs(
-    ("Visualize Projects", 
-        pn.Column(
-            plot_display,
-            tabulator_display,
-            float_panel_display
-            )
-        ), 
-    ("Real-Time Plotting", 
-        pn.WidgetBox(
+    ("Visualize Projects", pn.Column(plot_display, tabulator_display, float_panel_display)), 
+    ("Real-Time Plotting", pn.Column()),
+    ("Message Log", pn.Column(msg_json))
+    )
+)
 
-        )
-    ),
-        ("Message Log", 
-            pn.Column(
-                msg_json
-            )
-        )
-    ))
-
+pn.config.raw_css.append(JSON_CSS)
 template.servable()
