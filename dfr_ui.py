@@ -46,7 +46,8 @@ def build_current_project(log_file_path, project_name):
 
     curr_project.ts_dataframe = time_series_canverter.log_to_dataframe(log_file_path)
     curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=constants.TIME_FIELD)
-    curr_project.store_msg_df_as_dict(message_canverter.log_to_dataframe(log_file_path).sort_values(by=constants.TIME_FIELD))
+    msg_df = message_canverter.log_to_dataframe(log_file_path).sort_values(by=constants.TIME_FIELD).set_index(constants.TIME_FIELD)
+    curr_project.store_msg_df_as_dict(msg_df)
     with open("./PROJECTS/"+project_name+".project", 'wb') as f:
         pickle.dump(curr_project, f)
 
