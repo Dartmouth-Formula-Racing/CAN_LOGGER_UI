@@ -35,6 +35,7 @@ class CANverter():
 
 
     def get_decoded_values(self, identifier, data, aggregatedValues):
+        there_is_data = False
         #decode data
         try:
             decodedMessage = self.dbc.decode_message(identifier, data, decode_choices=False)
@@ -45,7 +46,7 @@ class CANverter():
                     signalMin = self.signalMinList[signalIndex]
                     signalMax = self.signalMaxList[signalIndex]
                     
-                    if  ((signalMin == None or signalValue > signalMin) and (signalMax == None or signalValue < signalMax)):
+                    if  ((signalMin == None or signalValue >= signalMin) and (signalMax == None or signalValue <= signalMax)):
                         dps = self.dpsList[signalIndex]
                         if dps != None:
                             try:
@@ -53,8 +54,11 @@ class CANverter():
                             except:
                                 pass
                         aggregatedValues[signalIndex].append(signalValue) #save data if within boundary
-        except:
+                        there_is_data = True
+        except Exception as ex:
             pass
+
+        return there_is_data    
         
     def save_dbc_signal_data(self):
         identifierList = [] #CAN Identifiers
@@ -105,16 +109,20 @@ class CANverter():
             
             averagedValuesList = [np.nan] * len(self.signalList) #Avg values if signal freq > 1000 Hz
             currentValuesList = [ [] for _ in range(len(self.signalList)) ] #Current decoded values list
+
+            there_is_data_in_curr_list = False
+            row = logFile.readline()
             try:
-                (lastTimestamp, identifier, data) = self.get_encoded_pattern(logFile.readline()) #Get first line
-                self.get_decoded_values(identifier, data, currentValuesList) #Decode first line
+                (lastTimestamp, identifier, data) = self.get_encoded_pattern(row) #Get first line
+                there_is_data_in_curr_list = self.get_decoded_values(identifier, data, currentValuesList) #Decode first line
             except:
                 lastTimestamp = -1 #First line was invalid
-                
-            for row in logFile:
+
+            row = logFile.readline()
+            while (row):
                 try:
                     (timestamp, identifier, data) = self.get_encoded_pattern(row) #get line timestamp
-                    if (lastTimestamp != timestamp): #if timestamp is different we save the row for the dataframe
+                    if (lastTimestamp != timestamp and there_is_data_in_curr_list): #if timestamp is different we save the row for the dataframe
                         averagedValuesList[0] = lastTimestamp #add timestamp to row
                         lastTimestamp = timestamp
 
@@ -133,10 +141,35 @@ class CANverter():
                         dataframeRows.append(averagedValuesList.copy()) #append to dataframe rows
                         currentValuesList = [ [] for _ in range(len(self.signalList)) ] #clear our data lists
                         averagedValuesList = [np.nan] * len(currentValuesList)
+                        there_is_data_in_curr_list = False
 
-                    self.get_decoded_values(identifier, data, currentValuesList)
-                except:
+                    there_is_data_in_curr_list = self.get_decoded_values(identifier, data, currentValuesList) or there_is_data_in_curr_list
+                    row = logFile.readline()
+                except Exception as ex:
+                    # print(ex)
                     pass #invalid line
+            
+            try:
+                if (there_is_data_in_curr_list): #if timestamp is different we save the row for the dataframe
+                    averagedValuesList[0] = lastTimestamp #add timestamp to row
+
+                    for i, values in enumerate(currentValuesList):
+                        numOfValues = len(values)
+                        if numOfValues > 0:
+                            averageValue = float(values[-1])
+                            try:
+                                if numOfValues > 1:
+                                        averageValue = float(sum(values)/numOfValues)
+                                if self.dpsList[i] != 'None':
+                                    averageValue = round(averageValue, self.dpsList[i])
+                            except:
+                                pass
+                            averagedValuesList[i] = averageValue
+                    dataframeRows.append(averagedValuesList.copy()) #append to dataframe rows
+            except Exception as ex:
+                # print(ex)
+                pass #invalid line
+            
         logFile.close()
         
         return pd.DataFrame(dataframeRows, columns = self.displaySignalList) #return decoded data in dataframe
@@ -167,10 +200,16 @@ class CANverter():
 
 if __name__ == "__main__":
     # Sample code on how to use
-    time_series_canverter = CANverter("./dbc/time_series.dbc")
-    df = time_series_canverter.log_to_dataframe("./test_messages/CAN_00012.log")
-    df.to_csv( "./CAN_00012.csv")
-    # df = canverter.log_to_dataframe("./test_messages/POST_Faults.log")
-    # message_canverter = CANverter("./dbc/message./dbc")
+    # time_series_canverter = CANverter("./dbc/time_series.dbc")
+    # df = time_series_canverter.log_to_dataframe("./test_messages/CAN_00012.log")
+    # print(df.head)
+    # df.to_csv( "./CAN_00012.csv")
+
+    message_canverter = CANverter("./dbc/message.dbc")
+    df = message_canverter.log_to_dataframe("./test_messages/POST_Faults.log")
+    print(df.head)
+
+    # message_canverter = CANverter("./dbc/message.dbc")
     # dfsingle = message_canverter.decode_message_stream("(0000282789) X 000000AB#FF00000000000000")
+    # print(dfsingle.head)
     # dfsingle.to_csv( "./POST_Faults.csv")
