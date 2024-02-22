@@ -1,4 +1,5 @@
 import pandas as pd
+from pprint import pprint
 
 class Project():
 
@@ -7,6 +8,5 @@ class Project():
         self.msg_dict = dict()
 
     def store_msg_df_as_dict(self, msg_df):
-        print(msg_df)
-        self.msg_dict = msg_df.set_index('Time (ms)').to_dict()
-        print(self.msg_dict)
+        self.msg_dict = msg_df.to_dict(orient='index')
+        pprint(self.msg_dict)

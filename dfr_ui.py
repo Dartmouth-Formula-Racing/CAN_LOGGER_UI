@@ -46,7 +46,7 @@ def build_current_project(log_file_path, project_name):
 
     curr_project.ts_dataframe = time_series_canverter.log_to_dataframe(log_file_path)
     curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=constants.TIME_FIELD)
-    curr_project.msg_dict = curr_project.store_msg_df_as_dict(message_canverter.log_to_dataframe(log_file_path).sort_values(by=constants.TIME_FIELD))
+    curr_project.store_msg_df_as_dict(message_canverter.log_to_dataframe(log_file_path).sort_values(by=constants.TIME_FIELD))
     with open("./PROJECTS/"+project_name+".project", 'wb') as f:
         pickle.dump(curr_project, f)
 
@@ -74,23 +74,31 @@ def interpolate_dataframe():
 def time_series_dbc_file_picker_callback(event):
     global time_series_canverter
     time_series_dbc_file_path = askopenfilename(title = "Select Time Series DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
-    time_series_dbc_file_input_text.value = time_series_dbc_file_path
-    time_series_canverter = canvtr.CANverter(time_series_dbc_file_path)
+    if time_series_dbc_file_path != '':
+        time_series_dbc_file_input_text.value = time_series_dbc_file_path
+        time_series_canverter = canvtr.CANverter(time_series_dbc_file_path)
 
 def message_dbc_file_picker_callback(event):
     global message_canverter
     message_dbc_file_path = askopenfilename(title = "Select Message DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
-    message_dbc_file_input_text.value = message_dbc_file_path
-    message_canverter = canvtr.CANverter(message_dbc_file_path)
+    if message_dbc_file_path != '':
+        message_dbc_file_input_text.value = message_dbc_file_path
+        message_canverter = canvtr.CANverter(message_dbc_file_path)
 
 def data_file_picker_callback(event):
     global log_file_path
     log_file_path = askopenfilename(title = "Select Data File",filetypes = (("Data Files","*.log"),("all files","*.*"))) 
-    log_file_input_text.value = log_file_path
+    if log_file_input_text != '':
+        log_file_input_text.value = log_file_path
     
 def import_data_callback(event):
     global time_series_canverter
-    global log_file_path
+    global message_canverter
+    global log_file_path 
+    global time_series_dbc_file_input_text
+    global message_dbc_file_input_text
+    global project_name_input_text
+
     if len(log_import_selection[-1]) > 1:
         log_import_selection[-1].pop(1)
     log_import_selection[-1].append("Importing Data...")
@@ -98,25 +106,36 @@ def import_data_callback(event):
         # Get the file extension
         log_file_path = log_file_input_text.value
         file_extension = log_file_path.split(".")[-1].lower()
-        project_name = project_name_input_text.value.replace(" ", "").lower()
+        project_name = project_name_input_text.value.replace(" ", "_").lower()
         if project_name != None and project_name != '':
             if (file_extension == 'log'):
                 if (time_series_canverter == None):
-                    print('Handle case later')
-                else:
-                    build_current_project(log_file_path, project_name)
-                    project_name_select.options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
-                    project_name_input_text.value = ""
-            elif (file_extension == 'pkl'):
-                print('pickle')
-            elif (file_extension == 'csv'):
-                print('csv')
+                    try:
+                        time_series_canverter = canvtr.CANverter(time_series_dbc_file_input_text.value)
+                    except Exception as ex:
+                        log_import_selection[-1][-1]= ("Importing Failed. Please provide a valid time series .dbc file.")
+                        raise ex
+                if (message_canverter == None):
+                    try:
+                        message_canverter = canvtr.CANverter(message_dbc_file_input_text.value)
+                    except Exception as ex:
+                        log_import_selection[-1][-1]= ("Importing Failed. Please provide a valid message .dbc file.")
+                        raise ex
+                build_current_project(log_file_path, project_name)
+                project_name_select.options = [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
+                project_name_input_text.value = ""
+                time_series_dbc_file_input_text = ""
+                message_dbc_file_input_text = ""
+                project_name_input_text = ""
             else:
+                log_import_selection[-1][-1]= ("Importing Failed. Please provide a valid .log file")
                 raise Exception
+            
             log_import_selection[-1][-1]= ("Importing Successful!")
+        else:
+            log_import_selection[-1][-1]= ("Importing Failed. Please provide a project name.")
     except Exception as e:
         traceback.print_exc()
-        log_import_selection[-1][-1]= ("Importing Failed!")
 
 def csv_file_picker_callback(event):
     global csv_file_path
@@ -194,6 +213,7 @@ def update_project(project_name_select):
 
     with open("./PROJECTS/"+project_name_select+".project", 'rb') as f:
         curr_project = pickle.load(f)
+    pprint(curr_project.msg_dict)
     
      # Interpolate all columns linearly based on the "time" column
     interpolate_dataframe()
@@ -283,13 +303,11 @@ favorites_del_selection = pn.Column(
     )
 
 ### Message Log
-msg_json = pn.pane.JSON({'No messages':''}, name='JSON')
+msg_json = pn.pane.JSON({'No messages':''}, name='message log', sizing_mode='stretch_width', theme='light', hover_preview=True)
 
 def update_message_log():
     global msg_json
     global curr_project
-    print("updating json")
-    pprint(curr_project.msg_dict)
     msg_json.object = curr_project.msg_dict
 
 ####################################################
