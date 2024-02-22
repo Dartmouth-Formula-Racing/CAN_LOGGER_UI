@@ -1,5 +1,6 @@
 import panel as pn
 import base64
+import os
 
 TIME_FIELD = 'Time (ms)'
 EMPTY_FLOAT_PANEL_DISPLAY = pn.Row(visible = False, height = 0, width = 0)

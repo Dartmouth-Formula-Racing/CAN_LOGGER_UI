@@ -10,6 +10,7 @@ import pickle
 from getcomponents import *
 from constants import *
 import json
+from pprint import pprint
 
 pn.extension('plotly')
 pn.extension('floatpanel')
@@ -33,7 +34,8 @@ def build_current_project(log_file_path, project_name):
 
     curr_project.ts_dataframe = time_series_canverter.log_to_dataframe(log_file_path)
     curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=TIME_FIELD)
-    curr_project.msg_dict = curr_project.store_msg_df_as_dict(message_canverter.log_to_dataframe(log_file_path).sort_values(by=TIME_FIELD))
+    msg_df = message_canverter.log_to_dataframe(log_file_path).sort_values(by=TIME_FIELD).set_index(TIME_FIELD)
+    curr_project.store_msg_df_as_dict(msg_df)
     with open("./PROJECTS/"+project_name+".project", 'wb') as f:
         pickle.dump(curr_project, f)
 
@@ -60,23 +62,31 @@ def interpolate_dataframe():
 def time_series_dbc_file_btn_callback(event):
     global time_series_canverter
     time_series_dbc_file_path = askopenfilename(title = "Select Time Series DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
-    time_series_dbc_file_input_text.value = time_series_dbc_file_path
-    time_series_canverter = canvtr.CANverter(time_series_dbc_file_path)
+    if time_series_dbc_file_path != '':
+        time_series_dbc_file_input_text.value = time_series_dbc_file_path
+        time_series_canverter = canvtr.CANverter(time_series_dbc_file_path)
 
 def message_dbc_file_btn_callback(event):
     global message_canverter
     message_dbc_file_path = askopenfilename(title = "Select Message DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
-    message_dbc_file_input_text.value = message_dbc_file_path
-    message_canverter = canvtr.CANverter(message_dbc_file_path)
+    if message_dbc_file_path != '':
+        message_dbc_file_input_text.value = message_dbc_file_path
+        message_canverter = canvtr.CANverter(message_dbc_file_path)
 
 def data_file_btn_callback(event):
     global log_file_path
     log_file_path = askopenfilename(title = "Select Data File",filetypes = (("Data Files","*.log"),("all files","*.*"))) 
-    log_file_input_text.value = log_file_path
+    if log_file_input_text != '':
+        log_file_input_text.value = log_file_path
     
 def create_project_button_callback(event):
     global time_series_canverter
-    global log_file_path
+    global message_canverter
+    global log_file_path 
+    global time_series_dbc_file_input_text
+    global message_dbc_file_input_text
+    global project_name_input_text
+
     if len(create_project_float_panel[-1]) > 1:
         create_project_float_panel[-1].pop(1)
     create_project_float_panel[-1].append("Importing Data...")
@@ -84,20 +94,29 @@ def create_project_button_callback(event):
         # Get the file extension
         log_file_path = log_file_input_text.value
         file_extension = log_file_path.split(".")[-1].lower()
-        project_name = project_name_input_text.value.replace(" ", "").lower()
+        project_name = project_name_input_text.value.replace(" ", "_").lower()
         if project_name != None and project_name != '':
             if (file_extension == 'log'):
                 if (time_series_canverter == None):
-                    print('Handle case later')
-                else:
-                    build_current_project(log_file_path, project_name)
-                    project_name_select.options = get_projects()
-                    project_name_input_text.value = ""
-            elif (file_extension == 'pkl'):
-                print('pickle')
-            elif (file_extension == 'csv'):
-                print('csv')
+                    try:
+                        time_series_canverter = canvtr.CANverter(time_series_dbc_file_input_text.value)
+                    except Exception as ex:
+                        create_project_float_panel[-1][-1]= ("Importing Failed. Please provide a valid time series .dbc file.")
+                        raise ex
+                if (message_canverter == None):
+                    try:
+                        message_canverter = canvtr.CANverter(message_dbc_file_input_text.value)
+                    except Exception as ex:
+                        create_project_float_panel[-1][-1]= ("Importing Failed. Please provide a valid message .dbc file.")
+                        raise ex
+                build_current_project(log_file_path, project_name)
+                project_name_select.options = get_projects()
+                project_name_input_text.value = ""
+                time_series_dbc_file_input_text = ""
+                message_dbc_file_input_text = ""
+                project_name_input_text = ""
             else:
+                create_project_float_panel[-1][-1]= ("Importing Failed. Please provide a valid .log file")
                 raise Exception
             create_project_float_panel[-1][-1]= ("Importing Successful!")
     except Exception as e:
@@ -140,6 +159,7 @@ def create_new_project_float_btn_callback(event):
     log_file_input_text.placeholder = USER_ROOT_PATH
     if len(create_project_float_panel[-1]) > 1:
         create_project_float_panel[-1].pop(1)
+    update_message_log()
 
 ####################################################
 def favorites_save_btn_callback(event):
@@ -190,8 +210,26 @@ def delete_grouping_float_btn_callback(event):
     favorites_delete.options = get_favorites()
 
 ### Message Log
-msg_json = pn.pane.JSON(curr_project.msg_dict, name='JSON')
+json_css = '''
+.json-formatter-constructor-name {
+    color: LightGray !important;
+}
+.json-formatter-key {
+    color: black !important;
+}
+.json-formatter-number {
+    color: #00693e !important;
+}
+'''
 
+msg_json = pn.pane.JSON({'No messages':''}, name='message log', sizing_mode='stretch_width', theme='light') #, hover_preview=True)
+
+pn.config.raw_css.append(json_css)
+
+def update_message_log():
+    global msg_json
+    global curr_project
+    msg_json.object = curr_project.msg_dict
 def clear_all_columns_btn_callback(event):
     y_axes_field_multiselect.value = []
 
@@ -357,7 +395,7 @@ template.main.append(pn.Tabs(
     ),
         ("Message Log", 
             pn.Column(
-                # msg_json
+                msg_json
             )
         )
     ))
