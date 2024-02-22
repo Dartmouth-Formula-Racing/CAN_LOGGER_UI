@@ -1,18 +1,27 @@
 import panel as pn
-import os
-import pandas as pd
-import CANverter as canvtr
-from tkinter.filedialog import askopenfilename, asksaveasfilename
-from tkinter import Tk
 import plotly.graph_objects as go
-import constants
+from constants import *
+import os
 
 pn.extension('plotly')
 pn.extension('floatpanel')
 pn.extension('tabulator')
 
 
-######################## Parent Components
+################        COMPONENT CREATION HELPERS      #####################
+def create_button(buttonCallback, name, height, rowHeight=None):
+    newButton = pn.widgets.Button(name=name, align="center",height=height)
+    if rowHeight != None:
+        verticalMargin = (int)((rowHeight-height)/2)
+        newButton.margin = (verticalMargin, verticalMargin)
+    newButton.on_click(buttonCallback)
+    return newButton
+
+def get_favorites():
+    return [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
+
+def get_projects():
+    return [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
 
 ################     TABULATOR DISPLAY FUNCTIONS        #####################
 def update_tabulator_display(tabulatorDisplay, tabulator):
