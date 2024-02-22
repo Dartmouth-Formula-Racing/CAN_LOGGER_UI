@@ -4,9 +4,8 @@ from constants import *
 import os
 
 pn.extension('plotly')
-pn.extension('floatpanel')
 pn.extension('tabulator')
-
+pn.extension('floatpanel')
 
 ################        COMPONENT CREATION HELPERS      #####################
 def create_button(buttonCallback, name, height, rowHeight=None):
@@ -17,11 +16,16 @@ def create_button(buttonCallback, name, height, rowHeight=None):
     newButton.on_click(buttonCallback)
     return newButton
 
+def create_float_panel(object, name, height, width=DEFAULT_FLOAT_PANEL_WIDTH):
+    return pn.layout.FloatPanel(object, name=name, height=height, width = DEFAULT_FLOAT_PANEL_WIDTH, contained=False, position="center", theme=UI_THEME_COLOR)
+
 def get_favorites():
-    return [fav.split(".")[0] for fav in os.listdir("./FAVORITES/")]
+    if not os.path.exists(FAVORITES_DIRECTORY_STRING):
+        os.makedirs(FAVORITES_DIRECTORY_STRING)
+    return [fav.split(".")[0] for fav in os.listdir(FAVORITES_DIRECTORY_STRING)]
 
 def get_projects():
-    return [proj.split(".")[0] for proj in os.listdir("./PROJECTS/")]
+    return [proj.split(".")[0] for proj in os.listdir(PROJECTS_DIRECTORY_STRING)]
 
 ################     TABULATOR DISPLAY FUNCTIONS        #####################
 def update_tabulator_display(tabulatorDisplay, tabulator):
