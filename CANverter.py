@@ -9,6 +9,7 @@ class CANverter():
     
     DPS_BASE = 3
     LOGGING_BASE = 1
+    SIZE_OF_BYTE_MESSAGE = 16
 
     def __init__(self, dbc_file_path : str):
         self.signalList = ['Time']
@@ -23,13 +24,22 @@ class CANverter():
             self.displaySignalList[i] += " " + self.signalUnitList[i]
 
 
+    # def get_encoded_pattern(self, row : str):
+    #     # Get tokens
+    #     tokens = CANverter.SOCKET_CAN_LINE_PATTERN.search(row).groups()
+    #     # Return tokens in correct format
+    #     timestamp = int(tokens[0])
+    #     identifier = int(tokens[1],16)
+    #     dataPacket = bytearray.fromhex(tokens[2])
+    #     # Return packet
+    #     return (timestamp, identifier, dataPacket)
+            
     def get_encoded_pattern(self, row : str):
         # Get tokens
-        tokens = CANverter.SOCKET_CAN_LINE_PATTERN.search(row).groups()
         # Return tokens in correct format
-        timestamp = int(tokens[0])
-        identifier = int(tokens[1],16)
-        dataPacket = bytearray.fromhex(tokens[2])
+        timestamp = int(row[0] << 24) + int(row[1] << 16) + int(row[2] << 8) + int(row[3])
+        identifier = int(row[4] << 24) + int(row[5] << 16) + int(row[6] << 8) + int(row[7])
+        dataPacket = row[8:]
         # Return packet
         return (timestamp, identifier, dataPacket)
 
@@ -103,7 +113,7 @@ class CANverter():
                                 
     def log_to_dataframe(self, logFileName : str):
         #Open log file for reading
-        with open (logFileName, "r",encoding="utf8") as logFile:
+        with open (logFileName, "rb") as logFile:
             #Combine signal name and unit for column title
             dataframeRows = [] #Dataframe rows
             
@@ -111,14 +121,14 @@ class CANverter():
             currentValuesList = [ [] for _ in range(len(self.signalList)) ] #Current decoded values list
 
             there_is_data_in_curr_list = False
-            row = logFile.readline()
+            row = logFile.read(self.SIZE_OF_BYTE_MESSAGE)
             try:
                 (lastTimestamp, identifier, data) = self.get_encoded_pattern(row) #Get first line
                 there_is_data_in_curr_list = self.get_decoded_values(identifier, data, currentValuesList) #Decode first line
             except:
                 lastTimestamp = -1 #First line was invalid
 
-            row = logFile.readline()
+            row = logFile.read(self.SIZE_OF_BYTE_MESSAGE)
             while (row):
                 try:
                     (timestamp, identifier, data) = self.get_encoded_pattern(row) #get line timestamp
@@ -144,9 +154,9 @@ class CANverter():
                         there_is_data_in_curr_list = False
 
                     there_is_data_in_curr_list = self.get_decoded_values(identifier, data, currentValuesList) or there_is_data_in_curr_list
-                    row = logFile.readline()
+                    row = logFile.read(self.SIZE_OF_BYTE_MESSAGE)
                 except Exception as ex:
-                    # print(ex)
+                    print(ex)
                     pass #invalid line
             
             try:
@@ -200,14 +210,14 @@ class CANverter():
 
 if __name__ == "__main__":
     # Sample code on how to use
-    # time_series_canverter = CANverter("./dbc/time_series.dbc")
-    # df = time_series_canverter.log_to_dataframe("./test_messages/CAN_00012.log")
-    # print(df.head)
-    # df.to_csv( "./CAN_00012.csv")
-
-    message_canverter = CANverter("./dbc/message.dbc")
-    df = message_canverter.log_to_dataframe("./test_messages/POST_Faults.log")
+    time_series_canverter = CANverter("./dbc/time_series.dbc")
+    df = time_series_canverter.log_to_dataframe("test_messages/CAN_DATA/02-23-2024_(17h-37m-19s).log")
     print(df.head)
+    df.to_csv( "./CAN_00012.csv")
+
+    # message_canverter = CANverter("./dbc/message.dbc")
+    # df = message_canverter.log_to_dataframe("./test_messages/POST_Faults.log")
+    # print(df.head)
 
     # message_canverter = CANverter("./dbc/message.dbc")
     # dfsingle = message_canverter.decode_message_stream("(0000282789) X 000000AB#FF00000000000000")
