@@ -41,12 +41,14 @@ def build_current_project(log_file_path, project_name):
     
 def interpolate_dataframe():
     global curr_project
-
+    print(TIME_SECOND_FIELD)
     if TIME_SECOND_FIELD not in curr_project.ts_dataframe.columns:
+        print("\nNo Second time field!\n")
         curr_project.ts_dataframe.insert(0, TIME_SECOND_FIELD, curr_project.ts_dataframe[TIME_MILLISECOND_FIELD] / 1000)
 
     curr_project.ts_dataframe = curr_project.ts_dataframe.interpolate(method='linear', axis=0)
     all_columns = curr_project.ts_dataframe.columns.tolist()
+    print(all_columns)
     x_axis_field_select.options = all_columns
 
     columns_to_remove = [TIME_SECOND_FIELD, TIME_MILLISECOND_FIELD]
@@ -213,6 +215,7 @@ def update_project(project_name_select):
     x_axis_field_select.name = "X axis field for "+project_name_select
     y_axes_field_multiselect.value = []
     x_axis_field_select.value = TIME_MILLISECOND_FIELD
+    x_axis_field_select.value = TIME_SECOND_FIELD
     with open(PROJECTS_DIRECTORY_STRING+project_name_select+".project", 'rb') as project:
         curr_project = pickle.load(project)
     interpolate_dataframe()
