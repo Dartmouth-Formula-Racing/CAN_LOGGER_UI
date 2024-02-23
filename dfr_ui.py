@@ -183,7 +183,6 @@ def create_project_float_btn_callback(event):
     project_name_input_text.placeholder = "Project Name..."
     time_series_dbc_file_input_text.placeholder = USER_ROOT_PATH
     log_file_input_text.placeholder = USER_ROOT_PATH
-    update_message_log()
     
 def clear_all_columns_btn_callback(event):
     y_axes_field_multiselect.value = []
@@ -217,6 +216,7 @@ def update_project(project_name_select):
         curr_project = pickle.load(project)
     interpolate_dataframe()
     current_project_name = project_name_select
+    update_message_log()
 
 favorites_select = pn.widgets.Select(name='Signal Groupings',options=favorites_options)
 @pn.depends(favorites_select.param.value, watch=True)
