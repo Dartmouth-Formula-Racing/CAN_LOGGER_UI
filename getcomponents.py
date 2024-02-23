@@ -109,6 +109,8 @@ def update_graph_figure(current_dataframe, yAxesFields, xAxisField, combineAxes)
                 x=current_dataframe[xAxisField],
                 y=current_dataframe[column_name],
                 name=column_name,
+                mode='markers',
+                marker=True, 
                 yaxis=f"y{i}"
             ))
             i=i+1
