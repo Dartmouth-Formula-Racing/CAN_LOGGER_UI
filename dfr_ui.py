@@ -41,14 +41,11 @@ def build_current_project(log_file_path, project_name):
     
 def interpolate_dataframe():
     global curr_project
-    print(TIME_SECOND_FIELD)
     if TIME_SECOND_FIELD not in curr_project.ts_dataframe.columns:
-        print("\nNo Second time field!\n")
         curr_project.ts_dataframe.insert(0, TIME_SECOND_FIELD, curr_project.ts_dataframe[TIME_MILLISECOND_FIELD] / 1000)
 
     curr_project.ts_dataframe = curr_project.ts_dataframe.interpolate(method='linear', axis=0)
     all_columns = curr_project.ts_dataframe.columns.tolist()
-    print(all_columns)
     x_axis_field_select.options = all_columns
 
     columns_to_remove = [TIME_SECOND_FIELD, TIME_MILLISECOND_FIELD]
