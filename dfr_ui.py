@@ -156,8 +156,8 @@ def group_save_float_btn_callback(event):
     except:
         pn.state.notifications.error("Saving Failed!", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
 
-    favorites_select.options = get_favorites()
     favorites_delete.options = get_favorites()
+    favorites_select.options = get_favorites()
 
 def delete_grouping_float_btn_callback(event):
     global favorites_select
@@ -168,8 +168,9 @@ def delete_grouping_float_btn_callback(event):
     except:
         pn.state.notifications.error("Deleting Failed!", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
 
-    favorites_select.options = get_favorites()
     favorites_delete.options = get_favorites()
+    favorites_select.options = get_favorites()
+    
     
 """
 ############################ SIDEBAR CALLBACKS ##################################
@@ -189,7 +190,7 @@ def clear_all_columns_btn_callback(event):
 
 def generate_plot_btn_callback(event):
     global curr_project
-    plotly_pane.object = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value)
+    plotly_pane.object = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value, scatterplot_switch.value)
     final_filter = y_axes_field_multiselect.value.copy()
     final_filter.insert(0, TIME_MILLISECOND_FIELD)
     update_tabulator_display(tabulator_display, pn.widgets.Tabulator(curr_project.ts_dataframe[final_filter], show_index = False, page_size=TABULATOR_PAGE_SIZE, layout='fit_columns', sizing_mode='stretch_width'))
@@ -226,6 +227,8 @@ def favorites_load(favorites_select):
             y_axes_field_multiselect.value = pickle.load(f)
     except:
         y_axes_field_multiselect.value = []
+
+
         
 clear_all_columns_btn = create_button(clear_all_columns_btn_callback, 'Clear all columns', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 generate_plot_btn = create_button(generate_plot_btn_callback, 'Generate plot', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
@@ -233,12 +236,14 @@ create_project_button = create_button(create_project_button_callback, 'Create Pr
 create_project_float_btn = create_button(create_project_float_btn_callback, 'Create Project',  SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 export_project_float_btn = create_button(export_project_float_btn_callback, 'Export Project', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 combine_axes_switch_name = pn.widgets.StaticText(name='Combine Y-Axes', value=EMPTY_STRING)
-combine_axes_tooltip = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button below to implement changes", width=20)
+combine_axes_tooltip = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button to implement changes", width=20)
 y_axes_field_multiselect = pn.widgets.MultiChoice(name="Y Variables for "+project_name_select.value, value=[],options=[], align="center")
 x_axis_field_select = pn.widgets.Select(name="X Variable for "+project_name_select.value,options=[])
 favorites_save_btn = create_button(favorites_save_btn_callback, 'Save Grouping', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 favorites_del_btn = create_button(favorites_del_btn_callback, 'Delete Grouping', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 combine_axes_switch = pn.widgets.Switch(name='Switch')
+scatterplot_switch = pn.widgets.Switch(name='Scatterplot')
+scatterplot_switch_name = pn.widgets.StaticText(name='Scatterplot', value=EMPTY_STRING)
 
 main_sidebar = pn.Column(
     pn.Row(create_project_float_btn, export_project_float_btn, height=SIDEBAR_ROW_HEIGHT),
@@ -248,7 +253,8 @@ main_sidebar = pn.Column(
                     pn.Row(generate_plot_btn, clear_all_columns_btn, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(favorites_select,  height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(favorites_save_btn, favorites_del_btn, height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(combine_axes_switch_name, combine_axes_tooltip, combine_axes_switch, height = SIDEBAR_ROW_HEIGHT),
+                    pn.Row(combine_axes_switch_name, combine_axes_switch, combine_axes_tooltip),
+                    pn.Row(scatterplot_switch_name, scatterplot_switch),
                     pn.Row(x_axis_field_select, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(y_axes_field_multiselect, height = SIDEBAR_ROW_HEIGHT),
                 )
@@ -267,7 +273,7 @@ main_sidebar = pn.Column(
 """
 #Delete Grouping Float Panel Components
 delete_grouping_float_btn = create_button(delete_grouping_float_btn_callback, 'Delete', FLOAT_PANEL_BUTTON_HEIGHT)
-favorites_delete = pn.widgets.Select(name='Signal Groupings', options=favorites_options, )
+favorites_delete = pn.widgets.Select(name='Signal Grouping to Delete', options=favorites_options)
 
 #Save Grouping Float Panel Components
 group_save_float_btn = create_button(group_save_float_btn_callback, 'Save', FLOAT_PANEL_BUTTON_HEIGHT)
@@ -324,7 +330,7 @@ export_project_float_panel = pn.Column(
 """
 ############################ MAIN COMPONENTS ##################################
 """
-figure = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value)
+figure = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value, scatterplot_switch.value)
 plotly_pane = pn.pane.Plotly(figure, sizing_mode="stretch_both")
 plot_display = pn.Row(plotly_pane, min_height=PLOT_MIN_HEIGHT, sizing_mode="stretch_both")
 tabulator_display = EMPTY_TABULATOR_DISPLAY
