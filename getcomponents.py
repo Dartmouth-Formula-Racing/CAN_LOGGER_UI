@@ -109,42 +109,34 @@ def update_graph_figure(current_dataframe, yAxesFields, xAxisField, combineAxes,
         i=1
         for units in grouped_plots:
             for column_name in grouped_plots[units]:
+                fig.add_trace(go.Scatter(
+                        x=current_dataframe[xAxisField],
+                        y=current_dataframe[column_name],
+                        name=column_name,
+                        yaxis=f"y{i}"
+                    )) 
+                
                 if scatterplot:
-                    fig.add_trace(go.Scatter(
-                        x=current_dataframe[xAxisField],
-                        y=current_dataframe[column_name],
-                        name=column_name,
-                        mode='markers',
-                        yaxis=f"y{i}"
-                    )) 
-                else:
-                    fig.add_trace(go.Scatter(
-                        x=current_dataframe[xAxisField],
-                        y=current_dataframe[column_name],
-                        name=column_name,
-                        yaxis=f"y{i}"
-                    )) 
+                    fig.update_traces(go.Scatter(
+                        mode='markers'
+                    ))
             i=i+1   
         signal_num = len(grouped_plots)
 
     else:
         i=1
-        for column_name in yAxesFields:
+        for column_name in yAxesFields:            
+            fig.add_trace(go.Scatter(
+                    x=current_dataframe[xAxisField],
+                    y=current_dataframe[column_name],
+                    name=column_name,
+                    yaxis=f"y{i}"
+                )) 
+             
             if scatterplot:
-                fig.add_trace(go.Scatter(
-                    x=current_dataframe[xAxisField],
-                    y=current_dataframe[column_name],
-                    name=column_name,
-                    mode='markers',
-                    yaxis=f"y{i}"
-                )) 
-            else:
-                fig.add_trace(go.Scatter(
-                    x=current_dataframe[xAxisField],
-                    y=current_dataframe[column_name],
-                    name=column_name,
-                    yaxis=f"y{i}"
-                )) 
+                fig.update_traces(go.Scatter(
+                    mode='markers'
+                ))
             i=i+1
         signal_num = len(yAxesFields)
     
