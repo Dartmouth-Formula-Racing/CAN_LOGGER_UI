@@ -23,7 +23,8 @@ def get_favorites():
     if not os.path.exists(FAVORITES_DIRECTORY_STRING):
         os.makedirs(FAVORITES_DIRECTORY_STRING)
     fav_list = [fav.split(".")[0] for fav in os.listdir(FAVORITES_DIRECTORY_STRING)]
-    fav_list.insert(0,'')
+    if '' not in fav_list:
+        fav_list.insert(0,'')
     return (fav_list)
 
 def get_projects():
