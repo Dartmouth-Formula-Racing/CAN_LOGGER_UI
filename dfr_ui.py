@@ -9,6 +9,9 @@ import traceback
 import pickle
 from getcomponents import *
 from constants import *
+import serial
+from bokeh.models import ColumnDataSource
+import time    
 
 pn.extension('plotly')
 pn.extension('tabulator')
@@ -18,13 +21,21 @@ Tk().withdraw()
 pn.state.notifications.position = 'bottom-right'
 
 curr_project = projects.Project(TIME_MILLISECOND_FIELD)
+DEFAULT_TIME_SERIES_CANVERTER = canvtr.CANverter(DEFAULT_TIME_SERIES_DBC_FILE_PATH)
+DEFAULT_MESSAGES_CANVERTER = canvtr.CANverter(DEFAULT_MESSAGE_DBC_FILE_PATH)
+
 time_series_canverter = None
 message_canverter = None
+real_time_serial_port = None
 log_file_path = EMPTY_STRING
 csv_file_path = EMPTY_STRING
 project_options = get_projects()
 current_project_name = EMPTY_STRING
 favorites_options = get_favorites()
+real_time_data_source = None
+real_time_data_frame = None
+mutex = threading.Lock()
+is_streaming = False 
 
 def build_current_project(log_file_path, project_name):
     global curr_project
@@ -57,7 +68,46 @@ def update_message_log():
     global msg_json
     global curr_project
     msg_json.object = curr_project.msg_dict
-       
+  
+def read_data():
+    global is_streaming
+    global real_time_data_frame
+    global real_time_serial_port
+    try:
+        while is_streaming:
+            message = real_time_serial_port.readline() 
+            validated_message = format_byte_message(message)
+            if validated_message != "":
+                try: 
+                    updatedData= real_time_dbc_select.value.decode_message_stream(validated_message)
+                    with mutex:
+                        real_time_data_frame = pd.concat([real_time_data_frame, updatedData])
+                except:
+                    print(validated_message)
+                    print(traceback.format_exc())
+
+    except :
+        print(traceback.format_exc())
+        print('Program exit !')
+        pass
+
+@linear()
+def update(step):
+    global real_time_data_frame
+    global real_time_data_source
+    with mutex:
+        real_time_data_source.stream(real_time_data_frame, rollover=roll_over)
+        real_time_data_frame = real_time_data_frame.iloc[-roll_over:]
+        
+def add_update_periodic_callback():
+    global update_callback_remove
+    global real_time_plot_figure
+    curdoc().add_root(real_time_plot_figure)
+    update_callback_remove = curdoc().add_periodic_callback(update, 100)
+
+def remove_update_periodic_callback():
+    global update_callback_remove
+    curdoc().remove_periodic_callback(update_callback_remove)             
 """
 ############################ FLOAT CALLBACKS ##################################
 """
@@ -200,6 +250,53 @@ def favorites_save_btn_callback(event):
 def favorites_del_btn_callback(event):
     update_float_display(float_panel_display, create_float_panel(delete_groupings_float_panel, name='Save Signal Grouping', height=GROUPING_FLOAT_PANEL_HEIGHT))
 
+def start_real_time_stream_btn_callback(event):
+    global real_time_serial_port
+    global real_time_data_source
+    global real_time_data_frame
+    global is_streaming
+    
+    real_time_data_frame = pd.DataFrame()
+    real_time_data_source = ColumnDataSource(real_time_data_frame)
+    startTime = time.time()
+    while (time.time()-startTime < 10):
+        try:
+            message = real_time_serial_port.readline()
+            validated_message = format_byte_message(message)
+            decoded_message = real_time_dbc_select.value.decode_message_stream(validated_message)
+            if len(decoded_message) > 0:
+                real_time_data_frame = decoded_message
+                break
+        except:
+            pass
+    if (len(real_time_data_frame) == 0):
+        pn.state.notifications.error("Failed to start stream. Try again.", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
+        return
+
+    real_time_data_source = ColumnDataSource(real_time_data_frame)
+
+    selected_cols = ["X Axis Acceleration (g)", "Y Axis Acceleration (g)", "Z Axis Acceleration (g)",
+                    "X Axis YawRate (deg/s)", "Y Axis YawRate (deg/s)", "Z Axis YawRate (deg/s)",
+                    "GPS Latitude (degrees)", "GPS Longitude (degrees)"]
+    colors = ["red", "green", "blue", "orange", "purple", "black", "brown", "yellow"]
+
+    for (column, color) in zip(selected_cols, colors):
+        real_time_plot_figure.circle(x="Time (ms)", y=column, color = color, source=real_time_data_source, legend_label=column)
+    
+    pn.state.notifications.info("Starting stream...", duration=INFO_NOTIFICATION_DURATION)
+    add_update_periodic_callback()
+    is_streaming = True
+    thread = threading.Thread(target=read_data)
+    thread.start()
+    start_real_time_streaming_btn.disabled = True
+    
+def stop_real_time_stream_btn_callback(event):
+    global is_streaming
+    is_streaming = False
+    remove_update_periodic_callback()
+    pn.state.notifications.info("Ending stream...", duration=INFO_NOTIFICATION_DURATION)
+    start_real_time_streaming_btn.disabled = False
+    
 """
 ############################ SIDEBAR COMPONENTS ##################################
 """
@@ -239,11 +336,31 @@ x_axis_field_select = pn.widgets.Select(name="X Variable for "+project_name_sele
 favorites_save_btn = create_button(favorites_save_btn_callback, 'Save Grouping', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 favorites_del_btn = create_button(favorites_del_btn_callback, 'Delete Grouping', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 combine_axes_switch = pn.widgets.Switch(name='Switch')
+real_time_dbc_select = pn.widgets.Select(name='DBC File',options=[DEFAULT_TIME_SERIES_CANVERTER, DEFAULT_MESSAGES_CANVERTER])
+@pn.depends(real_time_dbc_select.param.value, watch=True)
+def real_time_dbc_select_callback(real_time_dbc_select):
+    real_time_y_axes_field_multiselect.options = real_time_dbc_select.signalList
+    real_time_x_axis_field_select.option = real_time_dbc_select.signalList
+    
+serial_port_select = pn.widgets.Select(name='Ports',value="", options=get_tty_ports())
+real_time_y_axes_field_multiselect = pn.widgets.MultiChoice(name="Y Variables for "+project_name_select.value, value=[],options=real_time_dbc_select.value.displaySignalList, align="center")
+real_time_x_axis_field_select = pn.widgets.Select(name="X Variable for "+project_name_select.value,options=real_time_dbc_select.value.displaySignalList)
+start_real_time_streaming_btn = create_button(start_real_time_stream_btn_callback, "Start Streaming", SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
+stop_real_time_streaming_btn = create_button(stop_real_time_stream_btn_callback, "Stop Streaming", SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
+
+@pn.depends(serial_port_select.param.value, watch=True)
+def serial_port_select_callback(serial_port_select):
+    global real_time_serial_port
+    try:
+        real_time_serial_port = serial.Serial(port=serial_port_select, baudrate=12000000, timeout=1, xonxoff=False, rtscts=False, dsrdtr=True)  
+        pn.state.notifications.success("Connection Succeeded!", duration=SUCCESS_NOTIFICATION_MILLISECOND_DURATION)
+    except:
+        pn.state.notifications.error("Connection Failed!", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
 
 main_sidebar = pn.Column(
     pn.Row(create_project_float_btn, export_project_float_btn, height=SIDEBAR_ROW_HEIGHT),
     pn.Row(project_name_select, height=SIDEBAR_ROW_HEIGHT),
-    pn.Tabs(("Manual",
+    pn.Tabs(("Static Plotting",
                 pn.Column(
                     pn.Row(generate_plot_btn, clear_all_columns_btn, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(favorites_select,  height = SIDEBAR_ROW_HEIGHT),
@@ -253,10 +370,13 @@ main_sidebar = pn.Column(
                     pn.Row(y_axes_field_multiselect, height = SIDEBAR_ROW_HEIGHT),
                 )
             ),
-            ( "Groupings",
+            ( "Real Time Plotting",
                 pn.Column(
-                    pn.Row(favorites_select, height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(favorites_save_btn, favorites_del_btn, height = SIDEBAR_ROW_HEIGHT),
+                    pn.Row(start_real_time_streaming_btn, stop_real_time_streaming_btn, height = SIDEBAR_ROW_HEIGHT),
+                    pn.Row(serial_port_select, height = SIDEBAR_ROW_HEIGHT),
+                    pn.Row(real_time_dbc_select, height = SIDEBAR_ROW_HEIGHT),
+                    pn.Row(real_time_x_axis_field_select, height = SIDEBAR_ROW_HEIGHT),
+                    pn.Row(real_time_y_axes_field_multiselect, height = SIDEBAR_ROW_HEIGHT),
                 ),
             )
     )
@@ -330,6 +450,7 @@ plot_display = pn.Row(plotly_pane, min_height=PLOT_MIN_HEIGHT, sizing_mode="stre
 tabulator_display = EMPTY_TABULATOR_DISPLAY
 float_panel_display = EMPTY_FLOAT_PANEL_DISPLAY
 msg_json = pn.pane.JSON({'No messages':EMPTY_STRING}, name='message log', sizing_mode='stretch_width', theme='light') #, hover_preview=True)
+real_time_plot_display = pn.Row(real_time_plot_figure, min_height=PLOT_MIN_HEIGHT, sizing_mode="stretch_both")
 
 template = pn.template.FastListTemplate(
     title="Dartmouth Formula Racing",
@@ -341,7 +462,7 @@ template = pn.template.FastListTemplate(
 
 template.main.append(pn.Tabs(
     ("Visualize Projects", pn.Column(plot_display, tabulator_display, float_panel_display)), 
-    ("Real-Time Plotting", pn.Column()),
+    ("Real-Time Plotting", pn.Column(real_time_plot_display)),
     ("Message Log", pn.Column(msg_json))
     )
 )

@@ -2,11 +2,32 @@ import panel as pn
 import plotly.graph_objects as go
 from constants import *
 import os
+from bokeh.plotting import figure as bokeh_figure
+from bokeh.plotting import curdoc
+from bokeh.driving import linear
+import threading
+import traceback
 
 pn.extension('plotly')
 pn.extension('tabulator')
 pn.extension('floatpanel')
 
+
+
+################        REAL TIME HELPERS      #####################
+update_callback_remove = None
+real_time_plot_figure = bokeh_figure( sizing_mode="stretch_width")
+roll_over = 500
+
+def get_tty_ports():
+    tty_ports = os.listdir("/dev")
+    tty_ports = list(filter(lambda port: port.startswith("tty."), tty_ports))
+    return ["/dev/" + tty_port for tty_port in tty_ports]
+
+def format_byte_message(message):
+    formatted_msg = message.decode("utf-8")[:-1]
+    return formatted_msg
+    
 ################        COMPONENT CREATION HELPERS      #####################
 def create_button(buttonCallback, name, height, rowHeight=None):
     newButton = pn.widgets.Button(name=name, align="center",height=height)

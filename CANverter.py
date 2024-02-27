@@ -5,12 +5,13 @@ import numpy as np
 
 class CANverter():
     #CONSTANTS
-    SOCKET_CAN_LINE_PATTERN = re.compile(r"\((\d+)\)\s+[^\s]+\s+([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
+    SOCKET_CAN_LINE_PATTERN = re.compile(r"(\d+)#([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
     
     DPS_BASE = 3
     LOGGING_BASE = 1
 
     def __init__(self, dbc_file_path : str):
+        self.dbcFilePath = dbc_file_path
         self.signalList = ['Time']
         self.displaySignalList = ['Time']
         self.signalUnitList = ['(ms)']
@@ -21,7 +22,9 @@ class CANverter():
         self.save_dbc_signal_data()
         for i in range(len(self.signalList)) :
             self.displaySignalList[i] += " " + self.signalUnitList[i]
-
+        
+    def __str__(self):
+        return self.dbcFilePath.split("/")[-1]
 
     def get_encoded_pattern(self, row : str):
         # Get tokens
@@ -176,27 +179,30 @@ class CANverter():
 
 
     def decode_message_stream(self, socketCANLine):
-        (timestamp, identifier, data) = self.get_encoded_pattern(socketCANLine)
-        valuesList = [np.nan] * len(self.signalList)
-        valuesList[0] = timestamp
+        try:
+            (timestamp, identifier, data) = self.get_encoded_pattern(socketCANLine)
+            valuesList = [np.nan] * len(self.signalList)
+            valuesList[0] = timestamp
 
-        decodedMessage = self.dbc.decode_message(identifier, data, decode_choices=False)
-        for (signalName, signalValue) in decodedMessage.items():
-            if signalName in self.signalList:
-                signalIndex = self.signalList.index(signalName)
-                signalMin = self.signalMinList[signalIndex]
-                signalMax = self.signalMaxList[signalIndex]
-                
-                if  ((signalMin == None or signalValue >= signalMin) and (signalMax == None or signalValue <= signalMax)):
-                    dps = self.dpsList[signalIndex]
-                    if dps != None:
-                        try:
-                            signalValue = round(float(signalValue), dps)
-                        except:
-                            pass
-                    valuesList[signalIndex] = signalValue
-                        
-        return pd.DataFrame([valuesList], columns = self.displaySignalList)
+            decodedMessage = self.dbc.decode_message(identifier, data, decode_choices=False)
+            for (signalName, signalValue) in decodedMessage.items():
+                if signalName in self.signalList:
+                    signalIndex = self.signalList.index(signalName)
+                    signalMin = self.signalMinList[signalIndex]
+                    signalMax = self.signalMaxList[signalIndex]
+                    
+                    if  ((signalMin == None or signalValue >= signalMin) and (signalMax == None or signalValue <= signalMax)):
+                        dps = self.dpsList[signalIndex]
+                        if dps != None:
+                            try:
+                                signalValue = round(float(signalValue), dps)
+                            except:
+                                pass
+                        valuesList[signalIndex] = signalValue
+                            
+            return pd.DataFrame([valuesList], columns = self.displaySignalList)
+        except:
+            return pd.DataFrame()
 
 if __name__ == "__main__":
     # Sample code on how to use
