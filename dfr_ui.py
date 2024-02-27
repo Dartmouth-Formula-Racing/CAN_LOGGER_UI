@@ -258,12 +258,6 @@ main_sidebar = pn.Column(
                     pn.Row(x_axis_field_select, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(y_axes_field_multiselect, height = SIDEBAR_ROW_HEIGHT),
                 )
-            ),
-            ( "Groupings",
-                pn.Column(
-                    pn.Row(favorites_select, height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(favorites_save_btn, favorites_del_btn, height = SIDEBAR_ROW_HEIGHT),
-                ),
             )
     )
 )
