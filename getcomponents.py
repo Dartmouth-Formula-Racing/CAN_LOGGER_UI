@@ -127,7 +127,7 @@ def update_graph_figure(current_dataframe, yAxesFields, xAxisField, combineAxes,
 
     else:
         signal_num = len(yAxesFields)
-        
+
         if (signal_num > 4):
             pn.state.notifications.error("Four Y-Axes Max Limit Exceeded!", duration=YAXIS_ERROR_NOTIFICATION_MILLISECOND_DURATION)
             return fig
@@ -150,8 +150,6 @@ def update_graph_figure(current_dataframe, yAxesFields, xAxisField, combineAxes,
     fig.update_layout(
         xaxis=dict(domain=[0.2, 0.8], title=xAxisField),
     )
-
-    # signal_num = len(yAxesFields)
 
     fig.update_layout(
         yaxis1=dict(

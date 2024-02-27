@@ -248,16 +248,14 @@ scatterplot_switch_name = pn.widgets.StaticText(name='Scatterplot', value=EMPTY_
 main_sidebar = pn.Column(
     pn.Row(create_project_float_btn, export_project_float_btn, height=SIDEBAR_ROW_HEIGHT),
     pn.Row(project_name_select, height=SIDEBAR_ROW_HEIGHT),
-    pn.Tabs(("Manual",
-                pn.Column(
-                    pn.Row(generate_plot_btn, clear_all_columns_btn, height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(favorites_select,  height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(favorites_save_btn, favorites_del_btn, height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(combine_axes_switch_name, combine_axes_switch, combine_axes_tooltip),
-                    pn.Row(scatterplot_switch_name, scatterplot_switch),
-                    pn.Row(x_axis_field_select, height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(y_axes_field_multiselect, height = SIDEBAR_ROW_HEIGHT),
-                )
+    pn.Row(pn.Column(
+            pn.Row(generate_plot_btn, clear_all_columns_btn, height = SIDEBAR_ROW_HEIGHT),
+            pn.Row(favorites_select,  height = SIDEBAR_ROW_HEIGHT),
+            pn.Row(favorites_save_btn, favorites_del_btn, height = SIDEBAR_ROW_HEIGHT),
+            pn.Row(combine_axes_switch_name, combine_axes_switch, combine_axes_tooltip),
+            pn.Row(scatterplot_switch_name, scatterplot_switch),
+            pn.Row(x_axis_field_select, height = SIDEBAR_ROW_HEIGHT),
+            pn.Row(y_axes_field_multiselect, height = SIDEBAR_ROW_HEIGHT),
             )
     )
 )
