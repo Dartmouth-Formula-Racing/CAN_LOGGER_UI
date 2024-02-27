@@ -29,8 +29,8 @@ def format_byte_message(message):
     return formatted_msg
     
 ################        COMPONENT CREATION HELPERS      #####################
-def create_button(buttonCallback, name, height, rowHeight=None):
-    newButton = pn.widgets.Button(name=name, align="center",height=height)
+def create_button(buttonCallback, name, height, rowHeight=None, disabled=False):
+    newButton = pn.widgets.Button(name=name, align="center",height=height, disabled=disabled)
     if rowHeight != None:
         verticalMargin = (int)((rowHeight-height)/2)
         newButton.margin = (verticalMargin, verticalMargin)

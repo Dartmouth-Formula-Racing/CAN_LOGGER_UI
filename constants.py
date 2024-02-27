@@ -35,7 +35,9 @@ INFO_NOTIFICATION_DURATION = 5000
 DEFAULT_TIME_SERIES_DBC_FILE_PATH = "./dbc/time_series.dbc"
 DEFAULT_MESSAGE_DBC_FILE_PATH = "./dbc/message.dbc"
 YAXIS_ERROR_NOTIFICATION_MILLISECOND_DURATION = 10000
-
+REAL_TIME_PLOT_COLORS = ["red", "green", "blue", "orange", "purple", "black"]
+REAL_TIME_Y_AXIS_FIELD_LIMIT = 6
+REAL_TIME_SETUP_SECONDS = 10
 EMPTY_STRING = ''
 with open("DFRLOGO.png","rb") as image_file:
     LOGO_ENCODED_STRING = base64.b64encode(image_file.read()).decode("utf-8")

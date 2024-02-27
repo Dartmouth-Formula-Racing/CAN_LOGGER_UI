@@ -2,13 +2,17 @@ import cantools
 import re
 import pandas as pd
 import numpy as np
+import datetime
+import traceback
+import time
 
 class CANverter():
     #CONSTANTS
     SOCKET_CAN_LINE_PATTERN = re.compile(r"(\d+)#([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
-    
+    TIME_MILLISECOND_FIELD = "Time (ms)"
     DPS_BASE = 3
     LOGGING_BASE = 1
+    UNIX_EPOCH = datetime.datetime(1970, 1, 1)
 
     def __init__(self, dbc_file_path : str):
         self.dbcFilePath = dbc_file_path
@@ -147,10 +151,10 @@ class CANverter():
                         there_is_data_in_curr_list = False
 
                     there_is_data_in_curr_list = self.get_decoded_values(identifier, data, currentValuesList) or there_is_data_in_curr_list
-                    row = logFile.readline()
                 except Exception as ex:
-                    # print(ex)
                     pass #invalid line
+                finally:
+                    row = logFile.readline()
             
             try:
                 if (there_is_data_in_curr_list): #if timestamp is different we save the row for the dataframe
@@ -174,8 +178,22 @@ class CANverter():
                 pass #invalid line
             
         logFile.close()
+        log_df = pd.DataFrame(dataframeRows, columns = self.displaySignalList)
         
-        return pd.DataFrame(dataframeRows, columns = self.displaySignalList) #return decoded data in dataframe
+        try:
+            timestamp = logFileName.split("/")[-1].split(".")[0]
+            log_dt = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H-%M-%SZ")
+            seconds_from_epoch = (log_dt - CANverter.UNIX_EPOCH).total_seconds()
+            print(log_df[CANverter.TIME_MILLISECOND_FIELD])
+            log_df['Epoch Seconds (s)'] = log_df[CANverter.TIME_MILLISECOND_FIELD]/1000 + seconds_from_epoch
+            log_df[f'Time ({ datetime.datetime.now().astimezone().tzinfo})'] = log_df['Epoch Seconds (s)'].apply(lambda epochSecond: datetime.datetime.fromtimestamp(epochSecond).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
+
+            print(log_df)
+        except:
+            print(traceback.format_exc())
+            pass
+        
+        return log_df #return decoded data in dataframe
 
 
     def decode_message_stream(self, socketCANLine):

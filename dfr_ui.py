@@ -36,6 +36,7 @@ real_time_data_source = None
 real_time_data_frame = None
 mutex = threading.Lock()
 is_streaming = False 
+real_time_thread = None
 
 def build_current_project(log_file_path, project_name):
     global curr_project
@@ -161,9 +162,8 @@ def create_project_button_callback(event):
                 build_current_project(log_file_path, project_name)
                 project_name_select.options = get_projects()
                 project_name_input_text.value = EMPTY_STRING
-                time_series_dbc_file_input_text = EMPTY_STRING
-                message_dbc_file_input_text = EMPTY_STRING
-                project_name_input_text = EMPTY_STRING
+                time_series_dbc_file_input_text.value = DEFAULT_TIME_SERIES_DBC_FILE_PATH
+                message_dbc_file_input_text.value = DEFAULT_MESSAGE_DBC_FILE_PATH
             else:
                 pn.state.notifications.error("Importing Failed. Please provide a valid .log file", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
                 raise Exception
@@ -232,7 +232,8 @@ def export_project_float_btn_callback(event):
 def create_project_float_btn_callback(event):
     update_float_display(float_panel_display, create_float_panel(create_project_float_panel, name='Create Project', height=CREATE_PROJECT_FLOAT_PANEL_HEIGHT))
     project_name_input_text.placeholder = "Project Name..."
-    time_series_dbc_file_input_text.placeholder = USER_ROOT_PATH
+    time_series_dbc_file_input_text.value = DEFAULT_TIME_SERIES_DBC_FILE_PATH
+    message_dbc_file_input_text.value = DEFAULT_MESSAGE_DBC_FILE_PATH
     log_file_input_text.placeholder = USER_ROOT_PATH
     
 def clear_all_columns_btn_callback(event):
@@ -252,15 +253,14 @@ def favorites_del_btn_callback(event):
     update_float_display(float_panel_display, create_float_panel(delete_groupings_float_panel, name='Save Signal Grouping', height=GROUPING_FLOAT_PANEL_HEIGHT))
 
 def start_real_time_stream_btn_callback(event):
-    global real_time_serial_port
-    global real_time_data_source
-    global real_time_data_frame
-    global is_streaming
-    
+    global real_time_serial_port, real_time_data_source, real_time_data_frame, is_streaming, real_time_thread, real_time_plot_figure
+    real_time_plot_figure = bokeh_figure( sizing_mode="stretch_width")
+    real_time_pane.object = real_time_plot_figure
     real_time_data_frame = pd.DataFrame()
     real_time_data_source = ColumnDataSource(real_time_data_frame)
+    
     startTime = time.time()
-    while (time.time()-startTime < 10):
+    while (time.time()-startTime < REAL_TIME_SETUP_SECONDS):
         try:
             message = real_time_serial_port.readline()
             validated_message = format_byte_message(message)
@@ -276,27 +276,30 @@ def start_real_time_stream_btn_callback(event):
 
     real_time_data_source = ColumnDataSource(real_time_data_frame)
 
-    selected_cols = ["X Axis Acceleration (g)", "Y Axis Acceleration (g)", "Z Axis Acceleration (g)",
-                    "X Axis YawRate (deg/s)", "Y Axis YawRate (deg/s)", "Z Axis YawRate (deg/s)",
-                    "GPS Latitude (degrees)", "GPS Longitude (degrees)"]
-    colors = ["red", "green", "blue", "orange", "purple", "black", "brown", "yellow"]
-
-    for (column, color) in zip(selected_cols, colors):
-        real_time_plot_figure.circle(x="Time (ms)", y=column, color = color, source=real_time_data_source, legend_label=column)
-    
+    x_axis_field = real_time_x_axis_field_select.value
+    y_axis_fields = real_time_y_axes_field_multiselect.value
+    if len(y_axis_fields) > REAL_TIME_Y_AXIS_FIELD_LIMIT:
+        pn.state.notifications.error("Reached Y-Axis Field Limit: " +REAL_TIME_Y_AXIS_FIELD_LIMIT, duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
+        return
+    for (y_label, color) in zip(y_axis_fields, REAL_TIME_PLOT_COLORS[0:len(y_axis_fields)]):
+        real_time_plot_figure.circle(x=x_axis_field, y=y_label, color = color, source=real_time_data_source, legend_label=y_label)
+    real_time_plot_figure.add_layout(real_time_plot_figure.legend[0], 'right')
     pn.state.notifications.info("Starting stream...", duration=INFO_NOTIFICATION_DURATION)
     add_update_periodic_callback()
     is_streaming = True
-    thread = threading.Thread(target=read_data)
-    thread.start()
+    real_time_thread = threading.Thread(target=read_data)
+    real_time_thread.start()
     start_real_time_streaming_btn.disabled = True
+    stop_real_time_streaming_btn.disabled = False
     
 def stop_real_time_stream_btn_callback(event):
-    global is_streaming
+    global is_streaming, real_time_thread
     is_streaming = False
+    real_time_thread.join()
     remove_update_periodic_callback()
     pn.state.notifications.info("Ending stream...", duration=INFO_NOTIFICATION_DURATION)
     start_real_time_streaming_btn.disabled = False
+    stop_real_time_streaming_btn.disabled = True
     
 """
 ############################ SIDEBAR COMPONENTS ##################################
@@ -329,7 +332,6 @@ def favorites_load(favorites_select):
         
 clear_all_columns_btn = create_button(clear_all_columns_btn_callback, 'Clear all columns', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 generate_plot_btn = create_button(generate_plot_btn_callback, 'Generate plot', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
-create_project_button = create_button(create_project_button_callback, 'Create Project', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 create_project_float_btn = create_button(create_project_float_btn_callback, 'Create Project',  SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 export_project_float_btn = create_button(export_project_float_btn_callback, 'Export Project', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 combine_axes_switch_name = pn.widgets.StaticText(name='Combine Y-Axes', value=EMPTY_STRING)
@@ -348,10 +350,10 @@ def real_time_dbc_select_callback(real_time_dbc_select):
     real_time_x_axis_field_select.option = real_time_dbc_select.signalList
     
 serial_port_select = pn.widgets.Select(name='Ports',value="", options=get_tty_ports())
-real_time_y_axes_field_multiselect = pn.widgets.MultiChoice(name="Y Variables for "+project_name_select.value, value=[],options=real_time_dbc_select.value.displaySignalList, align="center")
-real_time_x_axis_field_select = pn.widgets.Select(name="X Variable for "+project_name_select.value,options=real_time_dbc_select.value.displaySignalList)
+real_time_y_axes_field_multiselect = pn.widgets.MultiChoice(name="Y Axes Variables", value=[],options=real_time_dbc_select.value.displaySignalList, align="center")
+real_time_x_axis_field_select = pn.widgets.Select(name="X Axis Variable",options=real_time_dbc_select.value.displaySignalList)
 start_real_time_streaming_btn = create_button(start_real_time_stream_btn_callback, "Start Streaming", SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
-stop_real_time_streaming_btn = create_button(stop_real_time_stream_btn_callback, "Stop Streaming", SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
+stop_real_time_streaming_btn = create_button(stop_real_time_stream_btn_callback, "Stop Streaming", SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT, disabled=True)
 
 @pn.depends(serial_port_select.param.value, watch=True)
 def serial_port_select_callback(serial_port_select):
@@ -403,10 +405,11 @@ group_name = pn.widgets.TextInput(name=EMPTY_STRING, placeholder='Enter a name h
 time_series_dbc_file_btn = create_button(time_series_dbc_file_btn_callback, 'Upload .dbc file',  FLOAT_PANEL_BUTTON_HEIGHT, FLOAT_PANEL_ROW_HEIGHT)
 message_dbc_file_btn = create_button(message_dbc_file_btn_callback, 'Upload .dbc file',  FLOAT_PANEL_BUTTON_HEIGHT, FLOAT_PANEL_ROW_HEIGHT)
 data_file_btn = create_button(data_file_btn_callback, 'Upload .log file',  FLOAT_PANEL_BUTTON_HEIGHT, FLOAT_PANEL_ROW_HEIGHT)
-time_series_dbc_file_input_text = pn.widgets.TextInput(name="Time series .dbc file", placeholder=USER_ROOT_PATH, height = FLOAT_PANEL_TEXT_INPUT_HEIGHT, align='center')
-message_dbc_file_input_text = pn.widgets.TextInput(name="Messages .dbc file", placeholder=USER_ROOT_PATH, height = FLOAT_PANEL_TEXT_INPUT_HEIGHT, align='center')
+time_series_dbc_file_input_text = pn.widgets.TextInput(name="Time series .dbc file", value=DEFAULT_TIME_SERIES_DBC_FILE_PATH, height = FLOAT_PANEL_TEXT_INPUT_HEIGHT, align='center')
+message_dbc_file_input_text = pn.widgets.TextInput(name="Messages .dbc file", value=DEFAULT_MESSAGE_DBC_FILE_PATH, height = FLOAT_PANEL_TEXT_INPUT_HEIGHT, align='center')
 log_file_input_text = pn.widgets.TextInput(name="CAN data .log file", placeholder=USER_ROOT_PATH, height = FLOAT_PANEL_TEXT_INPUT_HEIGHT, align='center')
 project_name_input_text = pn.widgets.TextInput(name="Project Name", placeholder = "Project Name...", height=FLOAT_PANEL_TEXT_INPUT_HEIGHT, align='center')
+create_project_button = create_button(create_project_button_callback, 'Create Project', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 
 #Export Project Float Panel Components
 csv_export_text = pn.widgets.TextInput(name="Choose output directory", placeholder=USER_ROOT_PATH, height = FLOAT_PANEL_TEXT_INPUT_HEIGHT, align='center')
@@ -456,7 +459,8 @@ plot_display = pn.Row(plotly_pane, min_height=PLOT_MIN_HEIGHT, sizing_mode="stre
 tabulator_display = EMPTY_TABULATOR_DISPLAY
 float_panel_display = EMPTY_FLOAT_PANEL_DISPLAY
 msg_json = pn.pane.JSON({'No messages':EMPTY_STRING}, name='message log', sizing_mode='stretch_width', theme='light') #, hover_preview=True)
-real_time_plot_display = pn.Row(real_time_plot_figure, min_height=PLOT_MIN_HEIGHT, sizing_mode="stretch_both")
+real_time_pane = pn.pane.Bokeh(real_time_plot_figure)
+real_time_plot_display = pn.Row(real_time_pane, min_height=PLOT_MIN_HEIGHT, sizing_mode="stretch_both")
 
 template = pn.template.FastListTemplate(
     title="Dartmouth Formula Racing",
@@ -467,7 +471,7 @@ template = pn.template.FastListTemplate(
 )
 
 template.main.append(pn.Tabs(
-    ("Visualize Projects", pn.Column(plot_display, tabulator_display, float_panel_display)), 
+    ("Static Plotting", pn.Column(plot_display, tabulator_display, float_panel_display)), 
     ("Real-Time Plotting", pn.Column(real_time_plot_display)),
     ("Message Log", pn.Column(msg_json))
     )
