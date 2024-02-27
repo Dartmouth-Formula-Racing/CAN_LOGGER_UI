@@ -76,11 +76,8 @@ def update_float_display(floatDisplay, floatPanel):
         return floatDisplay
     
 ################      GRAPH DISPLAY FUNCTIONS        #####################
-def update_graph_figure(current_dataframe, yAxesFields, xAxisField, combineAxes):
-    # df: csv data dataframe
-    # y: list of attributes from csv we want to graph (dataframe headers)
+def update_graph_figure(current_dataframe, yAxesFields, xAxisField, combineAxes, scatterplot):
 
-    # Only handles up to 4...    
     fig = go.Figure()
     fig.update_layout(
         paper_bgcolor='rgba(0,0,0,0)', 
@@ -126,36 +123,54 @@ def update_graph_figure(current_dataframe, yAxesFields, xAxisField, combineAxes)
                 grouped_plots[units] = [column_name] 
         
         yAxesFields = y_labels
+        signal_num = len(grouped_plots)
 
+        if (signal_num > 4):
+            pn.state.notifications.error("Four Y-Axes Max Limit Exceeded!", duration=YAXIS_ERROR_NOTIFICATION_MILLISECOND_DURATION)
+            return fig
+        
         i=1
         for units in grouped_plots:
             for column_name in grouped_plots[units]:
                 fig.add_trace(go.Scatter(
+                        x=current_dataframe[xAxisField],
+                        y=current_dataframe[column_name],
+                        name=column_name,
+                        yaxis=f"y{i}"
+                    )) 
+                
+                if scatterplot:
+                    fig.update_traces(go.Scatter(
+                        mode='markers'
+                    ))
+            i=i+1   
+        
+
+    else:
+        signal_num = len(yAxesFields)
+
+        if (signal_num > 4):
+            pn.state.notifications.error("Four Y-Axes Max Limit Exceeded!", duration=YAXIS_ERROR_NOTIFICATION_MILLISECOND_DURATION)
+            return fig
+        
+        i=1
+        for column_name in yAxesFields:            
+            fig.add_trace(go.Scatter(
                     x=current_dataframe[xAxisField],
                     y=current_dataframe[column_name],
                     name=column_name,
                     yaxis=f"y{i}"
                 )) 
-            i=i+1   
-        signal_num = len(grouped_plots)
-
-    else:
-        i=1
-        for column_name in yAxesFields:
-            fig.add_trace(go.Scatter(
-                x=current_dataframe[xAxisField],
-                y=current_dataframe[column_name],
-                name=column_name,
-                yaxis=f"y{i}"
-            ))
+             
+            if scatterplot:
+                fig.update_traces(go.Scatter(
+                    mode='markers'
+                ))
             i=i+1
-        signal_num = len(yAxesFields)
     
     fig.update_layout(
         xaxis=dict(domain=[0.2, 0.8], title=xAxisField),
     )
-
-    signal_num = len(yAxesFields)
 
     fig.update_layout(
         yaxis1=dict(
