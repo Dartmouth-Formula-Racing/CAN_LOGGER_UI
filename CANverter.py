@@ -8,7 +8,7 @@ import time
 
 class CANverter():
     #CONSTANTS
-    SOCKET_CAN_LINE_PATTERN = re.compile(r"^(\d{10})#([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
+    SOCKET_CAN_LINE_PATTERN = re.compile(r"^(\d{10})#([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]{16})\n")
     TIME_MILLISECOND_FIELD = "Time (ms)"
     DPS_BASE = 3
     LOGGING_BASE = 1
