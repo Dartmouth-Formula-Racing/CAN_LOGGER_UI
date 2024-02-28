@@ -8,7 +8,7 @@ import time
 
 class CANverter():
     #CONSTANTS
-    SOCKET_CAN_LINE_PATTERN = re.compile(r"(\d+)#([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
+    SOCKET_CAN_LINE_PATTERN = re.compile(r"^(\d{10})#([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
     TIME_MILLISECOND_FIELD = "Time (ms)"
     DPS_BASE = 3
     LOGGING_BASE = 1
@@ -131,7 +131,6 @@ class CANverter():
                     (timestamp, identifier, data) = self.get_encoded_pattern(row) #get line timestamp
                     if (lastTimestamp != timestamp and there_is_data_in_curr_list): #if timestamp is different we save the row for the dataframe
                         averagedValuesList[0] = lastTimestamp #add timestamp to row
-                        lastTimestamp = timestamp
 
                         for i, values in enumerate(currentValuesList):
                             numOfValues = len(values)
@@ -151,6 +150,8 @@ class CANverter():
                         there_is_data_in_curr_list = False
 
                     there_is_data_in_curr_list = self.get_decoded_values(identifier, data, currentValuesList) or there_is_data_in_curr_list
+                    if (there_is_data_in_curr_list):
+                        lastTimestamp = timestamp
                 except Exception as ex:
                     pass #invalid line
                 finally:
@@ -230,7 +231,7 @@ if __name__ == "__main__":
     # df.to_csv( "./CAN_00012.csv")
 
     message_canverter = CANverter("./dbc/message.dbc")
-    df = message_canverter.log_to_dataframe("./test_messages/POST_Faults.log")
+    df = message_canverter.log_to_dataframe("./test_messages/CAN_DATA/2024-02-28T05-37-47Z.log")
     print(df.head)
 
     # message_canverter = CANverter("./dbc/message.dbc")
