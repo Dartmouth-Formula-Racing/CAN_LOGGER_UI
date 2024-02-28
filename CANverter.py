@@ -8,11 +8,12 @@ import time
 
 class CANverter():
     #CONSTANTS
-    SOCKET_CAN_LINE_PATTERN = re.compile(r"^(\d{10})#([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]{16})\n")
+    SOCKET_CAN_LINE_PATTERN = re.compile(r"^(\d{10})#([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]{16})$")
     TIME_MILLISECOND_FIELD = "Time (ms)"
     DPS_BASE = 3
     LOGGING_BASE = 1
     UNIX_EPOCH = datetime.datetime(1970, 1, 1)
+    LOCAL_TIME_FIELD = f'Time ({ datetime.datetime.now().astimezone().tzinfo})'
 
     def __init__(self, dbc_file_path : str):
         self.dbcFilePath = dbc_file_path
@@ -185,11 +186,8 @@ class CANverter():
             timestamp = logFileName.split("/")[-1].split(".")[0]
             log_dt = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H-%M-%SZ")
             seconds_from_epoch = (log_dt - CANverter.UNIX_EPOCH).total_seconds()
-            print(log_df[CANverter.TIME_MILLISECOND_FIELD])
             log_df['Epoch Seconds (s)'] = log_df[CANverter.TIME_MILLISECOND_FIELD]/1000 + seconds_from_epoch
-            log_df[f'Time ({ datetime.datetime.now().astimezone().tzinfo})'] = log_df['Epoch Seconds (s)'].apply(lambda epochSecond: datetime.datetime.fromtimestamp(epochSecond).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
-
-            print(log_df)
+            log_df[self.LOCAL_TIME_FIELD] = log_df['Epoch Seconds (s)'].apply(lambda epochSecond: datetime.datetime.fromtimestamp(epochSecond).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
         except:
             print(traceback.format_exc())
             pass

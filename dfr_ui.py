@@ -45,7 +45,7 @@ def build_current_project(log_file_path, project_name):
 
     curr_project.ts_dataframe = time_series_canverter.log_to_dataframe(log_file_path)
     curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=TIME_MILLISECOND_FIELD)
-    msg_df = message_canverter.log_to_dataframe(log_file_path).sort_values(by=TIME_MILLISECOND_FIELD).set_index(TIME_MILLISECOND_FIELD)
+    msg_df = message_canverter.log_to_dataframe(log_file_path).sort_values(by=TIME_MILLISECOND_FIELD).set_index(message_canverter.LOCAL_TIME_FIELD)
     curr_project.store_msg_df_as_dict(msg_df)
     with open(PROJECTS_DIRECTORY_STRING+project_name+".project", 'wb') as project:
         pickle.dump(curr_project, project)
@@ -84,7 +84,6 @@ def read_data():
                     with mutex:
                         real_time_data_frame = pd.concat([real_time_data_frame, updatedData])
                 except:
-                    print(validated_message)
                     print(traceback.format_exc())
 
     except :
@@ -161,6 +160,7 @@ def create_project_button_callback(event):
                         raise ex
                 build_current_project(log_file_path, project_name)
                 project_name_select.options = get_projects()
+                project_name_select.value = ''
                 project_name_input_text.value = EMPTY_STRING
                 time_series_dbc_file_input_text.value = DEFAULT_TIME_SERIES_DBC_FILE_PATH
                 message_dbc_file_input_text.value = DEFAULT_MESSAGE_DBC_FILE_PATH
@@ -317,6 +317,7 @@ def update_project(project_name_select):
         curr_project = pickle.load(project)
     interpolate_dataframe()
     current_project_name = project_name_select
+    favorites_select.value = ''
     update_message_log()
 
 favorites_select = pn.widgets.Select(name='Signal Groupings',options=favorites_options)
@@ -335,7 +336,7 @@ generate_plot_btn = create_button(generate_plot_btn_callback, 'Generate plot', S
 create_project_float_btn = create_button(create_project_float_btn_callback, 'Create Project',  SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 export_project_float_btn = create_button(export_project_float_btn_callback, 'Export Project', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 combine_axes_switch_name = pn.widgets.StaticText(name='Combine Y-Axes', value=EMPTY_STRING)
-combine_axes_tooltip = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button to implement changes", width=20)
+combine_axes_tooltip = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button to implement changes", width=20, align="start")
 y_axes_field_multiselect = pn.widgets.MultiChoice(name="Y Variables for "+project_name_select.value, value=[],options=[], align="center")
 x_axis_field_select = pn.widgets.Select(name="X Variable for "+project_name_select.value,options=[])
 favorites_save_btn = create_button(favorites_save_btn_callback, 'Save Grouping', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
@@ -372,7 +373,7 @@ main_sidebar = pn.Column(
                     pn.Row(generate_plot_btn, clear_all_columns_btn, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(favorites_select,  height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(favorites_save_btn, favorites_del_btn, height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(combine_axes_switch_name, combine_axes_tooltip, combine_axes_switch, height = SIDEBAR_ROW_HEIGHT),
+                    pn.Row(combine_axes_tooltip, combine_axes_switch_name, combine_axes_switch, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(scatterplot_switch_name, scatterplot_switch,height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(x_axis_field_select, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(y_axes_field_multiselect, height = SIDEBAR_ROW_HEIGHT),
