@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import CANverter as canvtr
 import projects
-from tkinter.filedialog import askopenfilename, asksaveasfilename
+from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 from tkinter import Tk
 import traceback
 import pickle
@@ -20,7 +20,7 @@ pn.extension(notifications=True)
 Tk().withdraw()
 pn.state.notifications.position = 'bottom-right'
 
-curr_project = projects.Project(TIME_MILLISECOND_FIELD)
+curr_project = projects.Project(pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']), pd.DataFrame())
 DEFAULT_TIME_SERIES_CANVERTER = canvtr.CANverter(DEFAULT_TIME_SERIES_DBC_FILE_PATH)
 DEFAULT_MESSAGES_CANVERTER = canvtr.CANverter(DEFAULT_MESSAGE_DBC_FILE_PATH)
 
@@ -28,7 +28,7 @@ time_series_canverter = None
 message_canverter = None
 real_time_serial_port = None
 log_file_path = EMPTY_STRING
-csv_file_path = EMPTY_STRING
+csv_directory = EMPTY_STRING
 project_options = get_projects()
 current_project_name = EMPTY_STRING
 favorites_options = get_favorites()
@@ -43,10 +43,9 @@ def build_current_project(log_file_path, project_name):
     global time_series_canverter
     global message_canverter
 
-    curr_project.ts_dataframe = time_series_canverter.log_to_dataframe(log_file_path)
-    curr_project.ts_dataframe = curr_project.ts_dataframe.sort_values(by=TIME_MILLISECOND_FIELD)
+    ts_df = time_series_canverter.log_to_dataframe(log_file_path).sort_values(by=TIME_MILLISECOND_FIELD)
     msg_df = message_canverter.log_to_dataframe(log_file_path).sort_values(by=TIME_MILLISECOND_FIELD).set_index(message_canverter.LOCAL_TIME_FIELD)
-    curr_project.store_msg_df_as_dict(msg_df)
+    curr_project = projects.Project(ts_df, msg_df)
     with open(PROJECTS_DIRECTORY_STRING+project_name+".project", 'wb') as project:
         pickle.dump(curr_project, project)
     interpolate_dataframe()
@@ -160,7 +159,6 @@ def create_project_button_callback(event):
                         raise ex
                 build_current_project(log_file_path, project_name)
                 project_name_select.options = get_projects()
-                project_name_select.value = ''
                 project_name_input_text.value = EMPTY_STRING
                 time_series_dbc_file_input_text.value = DEFAULT_TIME_SERIES_DBC_FILE_PATH
                 message_dbc_file_input_text.value = DEFAULT_MESSAGE_DBC_FILE_PATH
@@ -175,24 +173,29 @@ def create_project_button_callback(event):
         pn.state.notifications.error("Importing Failed!", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
 
 def choose_csv_file_btn_callback(event):
-    global csv_file_path
-    csv_file_path = asksaveasfilename(title = "Save Exported CSV File", filetypes = CSV_FILE_TYPES)
-    csv_export_text.value = csv_file_path
+    global csv_directory
+    csv_directory = askdirectory(title = "Save Exported CSV Files")
+    csv_export_text.value = csv_directory
 
 def save_csv_button_callback(event):
     global curr_project
-    global csv_file_path
+    global csv_directory
     global current_project_name
-    csv_file_path = csv_export_text.value
+    csv_directory = csv_export_text.value
     pn.state.notifications.info("Exporting Data...", duration=INFO_NOTIFICATION_DURATION)
+    ts_csv_name = csv_directory+"/"+current_project_name+"_time_series.csv"
+    msg_csv_name = csv_directory+"/"+current_project_name+"_messages.csv"
     try:
         if interpolate_csv_btn.value:
-            curr_project.ts_dataframe.to_csv(csv_file_path)
+            curr_project.ts_dataframe.to_csv(ts_csv_name)
         else:
-            pd.read_pickle(PROJECTS_DIRECTORY_STRING+current_project_name+".project").to_csv(csv_file_path)
-        csv_file_path = EMPTY_STRING
+            temp_project = pd.read_pickle(PROJECTS_DIRECTORY_STRING+current_project_name+".project")
+            temp_project.ts_dataframe.to_csv(ts_csv_name)
+        curr_project.msg_dataframe.to_csv(msg_csv_name)
+        csv_directory = EMPTY_STRING
         pn.state.notifications.success("Export Successful!", duration=SUCCESS_NOTIFICATION_MILLISECOND_DURATION)
-    except:
+    except Exception as ex:
+        print(ex)
         pn.state.notifications.error("Export Failed!", duration=ERROR_NOTIFICATION_MILLISECOND_DURATION)
         
 def group_save_float_btn_callback(event):
@@ -313,6 +316,8 @@ def update_project(project_name_select):
     y_axes_field_multiselect.value = []
     x_axis_field_select.value = TIME_MILLISECOND_FIELD
     x_axis_field_select.value = TIME_SECOND_FIELD
+    if project_name_select == '':
+        curr_project = projects.Project(pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']), pd.DataFrame())
     with open(PROJECTS_DIRECTORY_STRING+project_name_select+".project", 'rb') as project:
         curr_project = pickle.load(project)
     interpolate_dataframe()
@@ -414,7 +419,7 @@ create_project_button = create_button(create_project_button_callback, 'Create Pr
 
 #Export Project Float Panel Components
 csv_export_text = pn.widgets.TextInput(name="Choose output directory", placeholder=USER_ROOT_PATH, height = FLOAT_PANEL_TEXT_INPUT_HEIGHT, align='center')
-choose_csv_file_btn = create_button(choose_csv_file_btn_callback, 'Create .csv', FLOAT_PANEL_BUTTON_HEIGHT, FLOAT_PANEL_ROW_HEIGHT)
+choose_csv_file_btn = create_button(choose_csv_file_btn_callback, 'Choose Directory', FLOAT_PANEL_BUTTON_HEIGHT, FLOAT_PANEL_ROW_HEIGHT)
 save_csv_button = create_button(save_csv_button_callback, 'Save', FLOAT_PANEL_BUTTON_HEIGHT, FLOAT_PANEL_ROW_HEIGHT)
 interpolate_csv_btn = pn.widgets.Checkbox(name='Interpolate Data')
 

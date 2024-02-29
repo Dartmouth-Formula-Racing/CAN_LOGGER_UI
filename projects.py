@@ -3,9 +3,7 @@ from pprint import pprint
 
 class Project():
 
-    def __init__(self, time_field):
-        self.ts_dataframe = pd.DataFrame(columns=[time_field, 'y'])
-        self.msg_dict = dict()
-
-    def store_msg_df_as_dict(self, msg_df):
-        self.msg_dict = msg_df.to_dict(orient='index')
+    def __init__(self, ts_dataframe, msg_dataframe):
+        self.ts_dataframe = ts_dataframe
+        self.msg_dataframe = msg_dataframe
+        self.msg_dict = self.msg_dataframe.to_dict(orient='index')
