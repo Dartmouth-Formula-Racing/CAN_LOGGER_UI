@@ -20,7 +20,7 @@ pn.extension(notifications=True)
 Tk().withdraw()
 pn.state.notifications.position = 'bottom-right'
 
-curr_project = projects.Project(pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']), pd.DataFrame())
+curr_project = projects.Project(pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']), pd.DataFrame(),pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']))
 DEFAULT_TIME_SERIES_CANVERTER = canvtr.CANverter(DEFAULT_TIME_SERIES_DBC_FILE_PATH)
 DEFAULT_MESSAGES_CANVERTER = canvtr.CANverter(DEFAULT_MESSAGE_DBC_FILE_PATH)
 
@@ -46,7 +46,8 @@ def build_current_project(log_file_path, project_name):
 
     ts_df = time_series_canverter.log_to_dataframe(log_file_path).sort_values(by=TIME_MILLISECOND_FIELD)
     msg_df = message_canverter.log_to_dataframe(log_file_path).sort_values(by=TIME_MILLISECOND_FIELD).set_index(message_canverter.LOCAL_TIME_FIELD)
-    curr_project = projects.Project(ts_df, msg_df)
+    non_ts_df = ts_df.copy(deep=True)
+    curr_project = projects.Project(ts_df, msg_df, non_ts_df)
     with open(PROJECTS_DIRECTORY_STRING+project_name+".project", 'wb') as project:
         pickle.dump(curr_project, project)
     interpolate_dataframe()
@@ -239,10 +240,14 @@ def clear_all_columns_btn_callback(event):
 
 def generate_plot_btn_callback(event):
     global curr_project
-    plotly_pane.object = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value, scatterplot_switch.value)
-    final_filter = y_axes_field_multiselect.value.copy()
-    final_filter.insert(0, x_axis_field_select.value)
-    update_tabulator_display(tabulator_display, pn.widgets.Tabulator(curr_project.ts_dataframe[final_filter], show_index = False, page_size=TABULATOR_PAGE_SIZE, layout='fit_columns', sizing_mode='stretch_width'))
+    plotly_pane.object = update_graph_figure(curr_project.ts_dataframe, curr_project.non_ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value, scatterplot_switch.value)
+    columns_to_display = y_axes_field_multiselect.value.copy()
+    columns_to_display.insert(0, x_axis_field_select.value)
+    if scatterplot_switch.value:
+        update_tabulator_display(tabulator_display, pn.widgets.Tabulator(curr_project.non_ts_dataframe[columns_to_display], show_index = False, page_size=TABULATOR_PAGE_SIZE, layout='fit_columns', sizing_mode='stretch_width'))
+    else:
+        update_tabulator_display(tabulator_display, pn.widgets.Tabulator(curr_project.ts_dataframe[columns_to_display], show_index = False, page_size=TABULATOR_PAGE_SIZE, layout='fit_columns', sizing_mode='stretch_width'))
+        
 
 def favorites_save_btn_callback(event):
     update_float_display(float_panel_display, create_float_panel(save_groupings_float_panel, name='Save Signal Grouping', height=GROUPING_FLOAT_PANEL_HEIGHT))
@@ -314,7 +319,7 @@ def update_project(project_name_select):
     x_axis_field_select.value = TIME_MILLISECOND_FIELD
     x_axis_field_select.value = TIME_SECOND_FIELD
     if project_name_select == '':
-        curr_project = projects.Project(pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']), pd.DataFrame())
+        curr_project = projects.Project(pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']), pd.DataFrame(), pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']))
     with open(PROJECTS_DIRECTORY_STRING+project_name_select+".project", 'rb') as project:
         curr_project = pickle.load(project)
     interpolate_dataframe()
@@ -458,7 +463,7 @@ export_project_float_panel = pn.Column(
 """
 ############################ MAIN COMPONENTS ##################################
 """
-figure = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value, scatterplot_switch.value)
+figure = update_graph_figure(curr_project.ts_dataframe, curr_project.non_ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value, scatterplot_switch.value)
 plotly_pane = pn.pane.Plotly(figure, sizing_mode="stretch_both")
 plot_display = pn.Row(plotly_pane, min_height=PLOT_MIN_HEIGHT, sizing_mode="stretch_both")
 tabulator_display = EMPTY_TABULATOR_DISPLAY

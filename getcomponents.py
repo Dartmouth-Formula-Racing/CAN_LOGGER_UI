@@ -75,7 +75,7 @@ def update_float_display(floatDisplay, floatPanel):
         return floatDisplay
     
 ################      GRAPH DISPLAY FUNCTIONS        #####################
-def update_graph_figure(current_dataframe, yAxesFields, xAxisField, combineAxes, scatterplot):
+def update_graph_figure(current_dataframe, current_non_ts_dataframe, yAxesFields, xAxisField, combineAxes, scatterplot):
 
     fig = go.Figure()
     fig.update_layout(
@@ -131,17 +131,22 @@ def update_graph_figure(current_dataframe, yAxesFields, xAxisField, combineAxes,
         i=1
         for units in grouped_plots:
             for column_name in grouped_plots[units]:
-                fig.add_trace(go.Scatter(
-                        x=current_dataframe[xAxisField],
-                        y=current_dataframe[column_name],
+                if scatterplot:
+                    fig.add_trace(go.Scatter(
+                        x=current_non_ts_dataframe[xAxisField],
+                        y=current_non_ts_dataframe[column_name],
                         name=column_name,
+                        mode='markers',
                         yaxis=f"y{i}"
                     )) 
+                else:
+                    fig.add_trace(go.Scatter(
+                            x=current_dataframe[xAxisField],
+                            y=current_dataframe[column_name],
+                            name=column_name,
+                            yaxis=f"y{i}"
+                        )) 
                 
-                if scatterplot:
-                    fig.update_traces(go.Scatter(
-                        mode='markers'
-                    ))
             i=i+1   
         
 
@@ -154,17 +159,21 @@ def update_graph_figure(current_dataframe, yAxesFields, xAxisField, combineAxes,
         
         i=1
         for column_name in yAxesFields:            
-            fig.add_trace(go.Scatter(
-                    x=current_dataframe[xAxisField],
-                    y=current_dataframe[column_name],
+            if scatterplot:
+                fig.add_trace(go.Scatter(
+                    x=current_non_ts_dataframe[xAxisField],
+                    y=current_non_ts_dataframe[column_name],
                     name=column_name,
+                    mode='markers',
                     yaxis=f"y{i}"
                 )) 
-             
-            if scatterplot:
-                fig.update_traces(go.Scatter(
-                    mode='markers'
-                ))
+            else:
+                fig.add_trace(go.Scatter(
+                        x=current_dataframe[xAxisField],
+                        y=current_dataframe[column_name],
+                        name=column_name,
+                        yaxis=f"y{i}"
+                    )) 
             i=i+1
     
     fig.update_layout(
