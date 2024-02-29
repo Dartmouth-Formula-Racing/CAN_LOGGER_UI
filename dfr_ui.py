@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import CANverter as canvtr
 import projects
-from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
+from tkinter.filedialog import askopenfilename, askdirectory
 from tkinter import Tk
 import traceback
 import pickle
@@ -37,6 +37,7 @@ real_time_data_frame = None
 mutex = threading.Lock()
 is_streaming = False 
 real_time_thread = None
+roll_over = None
 
 def build_current_project(log_file_path, project_name):
     global curr_project
@@ -52,17 +53,11 @@ def build_current_project(log_file_path, project_name):
     
 def interpolate_dataframe():
     global curr_project
-    if TIME_SECOND_FIELD not in curr_project.ts_dataframe.columns:
-        curr_project.ts_dataframe.insert(0, TIME_SECOND_FIELD, curr_project.ts_dataframe[TIME_MILLISECOND_FIELD] / 1000)
 
     curr_project.ts_dataframe = curr_project.ts_dataframe.interpolate(method='linear', axis=0)
     all_columns = curr_project.ts_dataframe.columns.tolist()
     x_axis_field_select.options = all_columns
-
-    columns_to_remove = [TIME_SECOND_FIELD, TIME_MILLISECOND_FIELD]
-    copy_current_dataframe = curr_project.ts_dataframe.drop(columns=columns_to_remove)
-    y_columns = copy_current_dataframe.columns.tolist()
-    y_axes_field_multiselect.options = y_columns
+    y_axes_field_multiselect.options = all_columns
 
 def update_message_log():
     global msg_json
@@ -246,7 +241,7 @@ def generate_plot_btn_callback(event):
     global curr_project
     plotly_pane.object = update_graph_figure(curr_project.ts_dataframe, y_axes_field_multiselect.value, x_axis_field_select.value, combine_axes_switch.value, scatterplot_switch.value)
     final_filter = y_axes_field_multiselect.value.copy()
-    final_filter.insert(0, TIME_MILLISECOND_FIELD)
+    final_filter.insert(0, x_axis_field_select.value)
     update_tabulator_display(tabulator_display, pn.widgets.Tabulator(curr_project.ts_dataframe[final_filter], show_index = False, page_size=TABULATOR_PAGE_SIZE, layout='fit_columns', sizing_mode='stretch_width'))
 
 def favorites_save_btn_callback(event):
@@ -256,7 +251,7 @@ def favorites_del_btn_callback(event):
     update_float_display(float_panel_display, create_float_panel(delete_groupings_float_panel, name='Save Signal Grouping', height=GROUPING_FLOAT_PANEL_HEIGHT))
 
 def start_real_time_stream_btn_callback(event):
-    global real_time_serial_port, real_time_data_source, real_time_data_frame, is_streaming, real_time_thread, real_time_plot_figure
+    global real_time_serial_port, real_time_data_source, real_time_data_frame, is_streaming, real_time_thread, real_time_plot_figure, roll_over
     real_time_plot_figure = bokeh_figure( sizing_mode="stretch_width")
     real_time_pane.object = real_time_plot_figure
     real_time_data_frame = pd.DataFrame()
@@ -286,6 +281,7 @@ def start_real_time_stream_btn_callback(event):
         return
     for (y_label, color) in zip(y_axis_fields, REAL_TIME_PLOT_COLORS[0:len(y_axis_fields)]):
         real_time_plot_figure.circle(x=x_axis_field, y=y_label, color = color, source=real_time_data_source, legend_label=y_label)
+    real_time_plot_figure.xaxis.axis_label = x_axis_field
     real_time_plot_figure.add_layout(real_time_plot_figure.legend[0], 'right')
     pn.state.notifications.info("Starting stream...", duration=INFO_NOTIFICATION_DURATION)
     add_update_periodic_callback()
@@ -294,6 +290,7 @@ def start_real_time_stream_btn_callback(event):
     real_time_thread.start()
     start_real_time_streaming_btn.disabled = True
     stop_real_time_streaming_btn.disabled = False
+    roll_over = data_points_number_select.value
     
 def stop_real_time_stream_btn_callback(event):
     global is_streaming, real_time_thread
@@ -352,14 +349,15 @@ scatterplot_switch_name = pn.widgets.StaticText(name='Scatterplot', value=EMPTY_
 real_time_dbc_select = pn.widgets.Select(name='DBC File',options=[DEFAULT_TIME_SERIES_CANVERTER, DEFAULT_MESSAGES_CANVERTER])
 @pn.depends(real_time_dbc_select.param.value, watch=True)
 def real_time_dbc_select_callback(real_time_dbc_select):
-    real_time_y_axes_field_multiselect.options = real_time_dbc_select.signalList
-    real_time_x_axis_field_select.option = real_time_dbc_select.signalList
+    real_time_y_axes_field_multiselect.options = real_time_dbc_select.messageStreamDisplayList
+    real_time_x_axis_field_select.option = real_time_dbc_select.messageStreamDisplayList
     
 serial_port_select = pn.widgets.Select(name='Ports',value="", options=get_tty_ports())
-real_time_y_axes_field_multiselect = pn.widgets.MultiChoice(name="Y Axes Variables", value=[],options=real_time_dbc_select.value.displaySignalList, align="center")
-real_time_x_axis_field_select = pn.widgets.Select(name="X Axis Variable",options=real_time_dbc_select.value.displaySignalList)
+real_time_y_axes_field_multiselect = pn.widgets.MultiChoice(name="Y Axes Variables", value=[],options=real_time_dbc_select.value.messageStreamDisplayList, align="center")
+real_time_x_axis_field_select = pn.widgets.Select(name="X Axis Variable",options=real_time_dbc_select.value.messageStreamDisplayList)
 start_real_time_streaming_btn = create_button(start_real_time_stream_btn_callback, "Start Streaming", SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 stop_real_time_streaming_btn = create_button(stop_real_time_stream_btn_callback, "Stop Streaming", SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT, disabled=True)
+data_points_number_select = pn.widgets.Select(name="Number of points to plot", options=list(range(500, 5500, 500)))
 
 @pn.depends(serial_port_select.param.value, watch=True)
 def serial_port_select_callback(serial_port_select):
@@ -389,6 +387,7 @@ main_sidebar = pn.Column(
                     pn.Row(start_real_time_streaming_btn, stop_real_time_streaming_btn, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(serial_port_select, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(real_time_dbc_select, height = SIDEBAR_ROW_HEIGHT),
+                    pn.Row(data_points_number_select, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(real_time_x_axis_field_select, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(real_time_y_axes_field_multiselect, height = SIDEBAR_ROW_HEIGHT),
                 ),

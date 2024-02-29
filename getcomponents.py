@@ -17,7 +17,6 @@ pn.extension('floatpanel')
 ################        REAL TIME HELPERS      #####################
 update_callback_remove = None
 real_time_plot_figure = bokeh_figure( sizing_mode="stretch_width")
-roll_over = 500
 
 def get_tty_ports():
     tty_ports = os.listdir("/dev")

@@ -10,6 +10,8 @@ class CANverter():
     #CONSTANTS
     SOCKET_CAN_LINE_PATTERN = re.compile(r"^(\d{10})#([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]{16})$")
     TIME_MILLISECOND_FIELD = "Time (ms)"
+    TIME_SECOND_FIELD = "Time (s)"
+    EPOCH_SECOND_FIELD = "Epoch Second (s)"
     DPS_BASE = 3
     LOGGING_BASE = 1
     UNIX_EPOCH = datetime.datetime(1970, 1, 1)
@@ -27,7 +29,9 @@ class CANverter():
         self.save_dbc_signal_data()
         for i in range(len(self.signalList)) :
             self.displaySignalList[i] += " " + self.signalUnitList[i]
-        
+        self.messageStreamDisplayList = self.displaySignalList.copy()
+        self.messageStreamDisplayList.insert(0, CANverter.TIME_SECOND_FIELD)
+
     def __str__(self):
         return self.dbcFilePath.split("/")[-1]
 
@@ -186,8 +190,9 @@ class CANverter():
             timestamp = logFileName.split("/")[-1].split(".")[0]
             log_dt = datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H-%M-%SZ")
             seconds_from_epoch = (log_dt - CANverter.UNIX_EPOCH).total_seconds()
-            log_df['Epoch Seconds (s)'] = log_df[CANverter.TIME_MILLISECOND_FIELD]/1000 + seconds_from_epoch
-            log_df[self.LOCAL_TIME_FIELD] = log_df['Epoch Seconds (s)'].apply(lambda epochSecond: datetime.datetime.fromtimestamp(epochSecond).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3])
+            log_df.insert(0, CANverter.TIME_SECOND_FIELD, log_df[CANverter.TIME_MILLISECOND_FIELD]/1000)
+            log_df.insert(2, CANverter.EPOCH_SECOND_FIELD, log_df[CANverter.TIME_MILLISECOND_FIELD]/1000 + seconds_from_epoch)
+            log_df.insert(2, self.LOCAL_TIME_FIELD, log_df[CANverter.EPOCH_SECOND_FIELD].apply(lambda epochSecond: datetime.datetime.fromtimestamp(epochSecond).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]))
         except:
             print(traceback.format_exc())
             pass
@@ -216,8 +221,9 @@ class CANverter():
                             except:
                                 pass
                         valuesList[signalIndex] = signalValue
-                            
-            return pd.DataFrame([valuesList], columns = self.displaySignalList)
+            stream_df = pd.DataFrame([valuesList], columns = self.displaySignalList)
+            stream_df.insert(0, "Time (s)", stream_df[CANverter.TIME_MILLISECOND_FIELD]/1000)               
+            return stream_df
         except:
             return pd.DataFrame()
 
