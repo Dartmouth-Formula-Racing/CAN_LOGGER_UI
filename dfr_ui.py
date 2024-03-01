@@ -247,8 +247,7 @@ def generate_plot_btn_callback(event):
         update_tabulator_display(tabulator_display, pn.widgets.Tabulator(curr_project.non_ts_dataframe[columns_to_display], show_index = False, page_size=TABULATOR_PAGE_SIZE, layout='fit_columns', sizing_mode='stretch_width'))
     else:
         update_tabulator_display(tabulator_display, pn.widgets.Tabulator(curr_project.ts_dataframe[columns_to_display], show_index = False, page_size=TABULATOR_PAGE_SIZE, layout='fit_columns', sizing_mode='stretch_width'))
-        
-
+ 
 def favorites_save_btn_callback(event):
     update_float_display(float_panel_display, create_float_panel(save_groupings_float_panel, name='Save Signal Grouping', height=GROUPING_FLOAT_PANEL_HEIGHT))
 
@@ -319,7 +318,7 @@ def update_project(project_name_select):
     x_axis_field_select.value = TIME_MILLISECOND_FIELD
     x_axis_field_select.value = TIME_SECOND_FIELD
     if project_name_select == '':
-        curr_project = projects.Project(pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']), pd.DataFrame(), pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']))
+        curr_project = projects.Project(pd.DataFrame(columns=[TIME_MILLISECOND_FIELD, 'y']), pd.DataFrame())
     with open(PROJECTS_DIRECTORY_STRING+project_name_select+".project", 'rb') as project:
         curr_project = pickle.load(project)
     interpolate_dataframe()
