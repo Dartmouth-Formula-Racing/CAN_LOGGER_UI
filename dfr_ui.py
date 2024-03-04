@@ -343,6 +343,7 @@ create_project_float_btn = create_button(create_project_float_btn_callback, 'Cre
 export_project_float_btn = create_button(export_project_float_btn_callback, 'Export Project', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
 combine_axes_switch_name = pn.widgets.StaticText(name='Combine Y-Axes', value=EMPTY_STRING)
 combine_axes_tooltip = pn.widgets.TooltipIcon(value="Click the \"Generate plot\" button to implement changes", width=20, align="start")
+scatterplot_tooltip = pn.widgets.TooltipIcon(value="Scatterplot of non-interpolated data. Works better with fewer signals.", width=20, align="start")
 y_axes_field_multiselect = pn.widgets.MultiChoice(name="Y Variables for "+project_name_select.value, value=[],options=[], align="center")
 x_axis_field_select = pn.widgets.Select(name="X Variable for "+project_name_select.value,options=[])
 favorites_save_btn = create_button(favorites_save_btn_callback, 'Save Grouping', SIDEBAR_BUTTON_HEIGHT, SIDEBAR_ROW_HEIGHT)
@@ -380,8 +381,8 @@ main_sidebar = pn.Column(
                     pn.Row(generate_plot_btn, clear_all_columns_btn, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(favorites_select,  height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(favorites_save_btn, favorites_del_btn, height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(combine_axes_tooltip, combine_axes_switch_name, combine_axes_switch, height = SIDEBAR_ROW_HEIGHT),
-                    pn.Row(scatterplot_switch_name, scatterplot_switch,height = SIDEBAR_ROW_HEIGHT),
+                    pn.Row(combine_axes_tooltip, combine_axes_switch_name, combine_axes_switch, height = TOGGLE_ROW_HEIGHT),
+                    pn.Row(scatterplot_tooltip, scatterplot_switch_name, scatterplot_switch,height = TOGGLE_ROW_HEIGHT),
                     pn.Row(x_axis_field_select, height = SIDEBAR_ROW_HEIGHT),
                     pn.Row(y_axes_field_multiselect, height = SIDEBAR_ROW_HEIGHT),
                 )

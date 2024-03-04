@@ -137,6 +137,7 @@ def update_graph_figure(current_dataframe, current_non_ts_dataframe, yAxesFields
                         y=current_non_ts_dataframe[column_name],
                         name=column_name,
                         mode='markers',
+                        marker=dict(size=4),
                         yaxis=f"y{i}"
                     )) 
                 else:
@@ -165,6 +166,7 @@ def update_graph_figure(current_dataframe, current_non_ts_dataframe, yAxesFields
                     y=current_non_ts_dataframe[column_name],
                     name=column_name,
                     mode='markers',
+                    marker=dict(size=4),
                     yaxis=f"y{i}"
                 )) 
             else:
