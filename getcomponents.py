@@ -3,10 +3,6 @@ import plotly.graph_objects as go
 from constants import *
 import os
 from bokeh.plotting import figure as bokeh_figure
-from bokeh.plotting import curdoc
-from bokeh.driving import linear
-import threading
-import traceback
 
 pn.extension('plotly')
 pn.extension('tabulator')

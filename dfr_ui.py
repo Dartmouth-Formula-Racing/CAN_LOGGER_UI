@@ -12,6 +12,9 @@ from constants import *
 import serial
 from bokeh.models import ColumnDataSource
 import time    
+from bokeh.plotting import curdoc
+from bokeh.driving import linear
+import threading
 
 pn.extension('plotly')
 pn.extension('tabulator')
