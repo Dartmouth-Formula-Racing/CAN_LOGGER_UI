@@ -16,7 +16,7 @@ pip install pipenv
 pipenv install
 ```
 
-activate virtual environment:
+Activate virtual environment:
 ```
 pipenv shell
 ```
