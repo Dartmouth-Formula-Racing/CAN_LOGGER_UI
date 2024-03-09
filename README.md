@@ -6,9 +6,20 @@ Download Python 3.8:
 ```
 python --version
 ```
-2. If you do not have Python 3.8, go to https://www.python.org/downloads/ and install it for your operating system.
+2. If you do not have Python 3.8, follow the instructions here (https://github.com/pyenv/pyenv?tab=readme-ov-file#installation) to install pyenv. Pyenv makes it easy to switch between python versions on your system. If you already know how to switch between versions, you can download Python 3.8 here (https://www.python.org/downloads/) and skip the pyenv-related steps.
+  
+3. Once you've installed pyenv, run:
+```
+pyenv install 3.8
+```
 
-3. Check that you now have Python 3.8
+4. Set Python 3.8 as the global version:
+```
+pyenv global 3.8
+```
+To switch back to other versions of Python, run pyenv global followed by the version number.
+
+5. Verify that you are using Python 3.8:
 ```
 python --version
 ```
