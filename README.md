@@ -48,8 +48,9 @@ pipenv shell
 
 To run the project, while in your directory folder, run the following line:
 ```
-pipenv run panel serve dfr_ui.py
+pipenv run panel serve --show dfr_ui.py
 ```
+Press `CTRl` + `C` to stop running the application
 
 To deactivate virtual environment when finished:
 ```
