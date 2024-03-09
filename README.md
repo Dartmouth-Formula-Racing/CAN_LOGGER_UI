@@ -1,35 +1,33 @@
 # panels-gui
 Repository for user interface program to display and analyze DFR data.
 
+Set up directory:
+1. Download files and folders from this Git repository and store them in a folder of your choice. This is your directory folder.
+
+2. Ensure that the "Pipfile" and "Pipfile.lock" files are in this folder.
+
+Set up virtual environment:
+1. Make sure you have pipenv
+```
+pip install pipenv
+```
+2. Create the virtual environment
 Set up virtual environment:
 ```
-python -m venv env
+pipenv install
 ```
 
-activate virtual environment on Linux:
+activate virtual environment:
 ```
-source env/bin/activate
-```
-activate virtual environment on Windows:
-```
-.\env\Scripts\activate
+pipenv shell
 ```
 
-To install packages needed:
+To run the project, while in your directory folder, run the following line:
 ```
-pip install -r requirements.txt
-```
-
-To run the project, go to the project in terminal and run:
-```
-panel serve dfr_ui.py
-```
-For auto reload and automatic pop-up use:
-```
-panel serve dfr_ui.py --autoreload --show
+pipenv run panel serve dfr_ui.py
 ```
 
 To deactivate virtual environment when finished:
 ```
-deactivate
+exit
 ```
