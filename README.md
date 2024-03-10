@@ -6,6 +6,8 @@ Download Python 3.8:
 ```
 python --version
 ```
+If the response is Python 3.8.x (where x is any number), you are good to go!
+
 2. If you do not have Python 3.8, follow the instructions here (https://github.com/pyenv/pyenv?tab=readme-ov-file#installation) to install pyenv. Pyenv makes it easy to switch between python versions on your system. If you already know how to switch between versions, you can download Python 3.8 here (https://www.python.org/downloads/) and skip the pyenv-related steps. Alternatively, you can use conda or any other method to install Python 3.8.
   
 3. Once you've installed pyenv, run:
