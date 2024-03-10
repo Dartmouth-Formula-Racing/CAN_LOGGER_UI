@@ -36,7 +36,6 @@ Set up virtual environment:
 pip install pipenv
 ```
 2. Create the virtual environment
-Set up virtual environment:
 ```
 pipenv install
 ```
