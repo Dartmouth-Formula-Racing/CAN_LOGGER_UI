@@ -1,0 +1,113 @@
+VERSION ""
+
+
+NS_ : 
+		NS_DESC_
+		CM_
+		BA_DEF_
+		BA_
+		VAL_
+		CAT_DEF_
+		CAT_
+		FILTER
+		BA_DEF_DEF_
+		EV_DATA_
+		ENVVAR_DATA_
+		SGTYPE_
+		SGTYPE_VAL_
+		BA_DEF_SGTYPE_
+		BA_SGTYPE_
+		SIG_TYPE_REF_
+		VAL_TABLE_
+		SIG_GROUP_
+		SIG_VALTYPE_
+		SIGTYPE_VALTYPE_
+		BO_TX_BU_
+		BA_DEF_REL_
+		BA_REL_
+		BA_DEF_DEF_REL_
+		BU_SG_REL_
+		BU_EV_REL_
+		BU_BO_REL_
+		SG_MUL_VAL_
+
+BS_:
+
+BU_:
+
+
+BO_ 160 Temperatures_1: 8 Vector__XXX
+	SG_ Mod_A_Temp : 0|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+	SG_ Mod_B_Temp : 16|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+	SG_ Mod_C_Temp : 32|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+	SG_ Gate_Driver_Board_Temp : 48|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+
+BO_ 161 Temperatures_2: 8 Vector__XXX
+	SG_ Control_Board_Temp : 0|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+	SG_ RTD_1_Temp : 16|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+	SG_ RTD_2_Temp : 32|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+	SG_ RTD_3_Temp : 48|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+
+BO_ 162 Temperatures_3: 8 Vector__XXX
+	SG_ RTD_4_Temp : 0|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+	SG_ RTD_5_Temp : 16|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+	SG_ Motor_Temp : 32|16@1- (0.1,0) [-3276.8|3276.7] "C" Vector__XXX
+	SG_ Torque_Shudder : 48|16@1- (0.1,0) [-3276.8|3276.7] "N*m" Vector__XXX
+
+BO_ 165 Motor_Position_Info: 8 Vector__XXX
+	SG_ Motor_Angle_Electrical : 0|16@1- (0.1,0) [-359.9|359.9] "degrees" Vector__XXX
+	SG_ Motor_Speed : 16|16@1- (0.1,0) [-32768|32767] "rpm" Vector__XXX
+	SG_ Electrical_Output_Freq : 32|16@1- (0.1,0) [-3276.8|3276.7] "Hz" Vector__XXX
+	SG_ Delta_Resolver_Filtered : 48|16@1- (0.1,0) [-359.9|359.9] "degrees" Vector__XXX
+
+BO_ 2148139011 Accelerometer: 6 Vector__XXX	
+	SG_ X_Axis_Acceleration : 7|16@0- (0.000244141,0) [-8|8] "g" Vector__XXX
+	SG_ Y_Axis_Acceleration : 23|16@0- (0.000244141,0) [-8|8] "g" Vector__XXX
+	SG_ Z_Axis_Acceleration : 39|16@0- (0.000244141,0) [-8|8] "g" Vector__XXX
+
+BO_ 2148139012 Yaw_Rate: 6 Vector__XXX
+	SG_ X_Axis_YawRate : 7|16@0- (0.015258789,0) [-500|500] "deg/s" Vector__XXX
+	SG_ Y_Axis_YawRate : 23|16@0- (0.015258789,0) [-500|500] "deg/s" Vector__XXX
+	SG_ Z_Axis_YawRate : 39|16@0- (0.015258789,0) [-500|500] "deg/s" Vector__XXX
+
+BO_ 2148139008 GPS_Position: 8 Vector__XXX
+	SG_ GPS_Latitude : 7|32@0- (1,0) [-180|180] "degrees" Vector__XXX
+	SG_ GPS_Longitude : 39|32@0- (1,0) [-180|180] "degrees" Vector__XXX
+
+BO_ 2148139009 GPS_Data: 8 Vector__XXX
+	SG_ GPS_Speed : 7|16@0+ (0.01,0) [0|655.35] "mph" Vector__XXX
+	SG_ GPS_Altitude : 23|16@0- (1,0) [-32768|32767] "ft" Vector__XXX
+	SG_ GPS_TrueCourse : 39|16@0+ (0.01,0) [0|655.35] "degrees" Vector__XXX
+	SG_ GPS_SatellitesInUse : 55|8@0+ (1,0) [0|255] "satellites" Vector__XXX
+	SG_ GPS_Valid : 63|8@0+ (1,0) [0|255] "OK(1)/N(2)" Vector__XXX
+
+BO_ 2148139010 GPS_DateTime: 8 Vector__XXX
+	SG_ GPS_Valid : 7|8@0+ (1,0) [0|255] "OK(1)/N(2)" Vector__XXX
+	SG_ UTC_Year : 15|8@0+ (1,0) [0|255] "year" Vector__XXX
+	SG_ UTC_Month : 23|8@0+ (1,0) [0|255] "month" Vector__XXX
+	SG_ UTC_Day : 31|8@0+ (1,0) [0|255] "day" Vector__XXX
+	SG_ UTC_Hour : 47|8@0+ (1,0) [0|255] "hour" Vector__XXX
+	SG_ UTC_Minute : 55|8@0+ (1,0) [0|255] "min" Vector__XXX
+	SG_ UTC_Second : 63|8@0+ (1,0) [0|255] "sec" Vector__XXX
+
+SIG_VALTYPE_ 2148139008 GPS_Latitude : 1;
+SIG_VALTYPE_ 2148139008 GPS_Longitude : 1;
+
+BA_DEF_ SG_  "SPN" INT 0 524287;
+BA_DEF_ BO_  "VFrameFormat" ENUM  "StandardCAN","ExtendedCAN","reserved","J1939PG";
+BA_DEF_  "DatabaseVersion" STRING ;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_  "ProtocolType" STRING ;
+BA_DEF_  "DatabaseCompiler" STRING ;
+BA_DEF_DEF_  "SPN" 0;
+BA_DEF_DEF_  "VFrameFormat" "J1939PG";
+BA_DEF_DEF_  "DatabaseVersion" "DEMO PLUS";
+BA_DEF_DEF_  "BusType" "";
+BA_DEF_DEF_  "ProtocolType" "";
+BA_DEF_DEF_  "DatabaseCompiler" "";
+BA_ "ProtocolType" "J1939";
+BA_ "BusType" "CAN";
+BA_ "DatabaseCompiler" "CSS ELECTRONICS (WWW.CSSELECTRONICS.COM)";
+BA_ "DatabaseVersion" "1.0.0";
+BA_ "VFrameFormat" BO_ 2364540158 3;
+BA_ "SPN" SG_ 2364540158 EngineSpeed 190;

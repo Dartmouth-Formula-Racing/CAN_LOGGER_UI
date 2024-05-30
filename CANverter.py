@@ -229,14 +229,14 @@ class CANverter():
 
 if __name__ == "__main__":
     # Sample code on how to use
-    # time_series_canverter = CANverter("./dbc/time_series.dbc")
-    # df = time_series_canverter.log_to_dataframe("./test_messages/CAN_00012.log")
-    # print(df.head)
-    # df.to_csv( "./CAN_00012.csv")
-
-    message_canverter = CANverter("./dbc/message.dbc")
-    df = message_canverter.log_to_dataframe("./test_messages/CAN_DATA/2024-02-28T05-37-47Z.log")
+    time_series_canverter = CANverter("./dbc/time_series.dbc")
+    df = time_series_canverter.log_to_dataframe("./example_can_logs/2024-05-02T17-29-38Z.log")
     print(df.head)
+    df.to_csv( "./CAN_00012.csv")
+
+    # message_canverter = CANverter("./dbc/message.dbc")
+    # df = message_canverter.log_to_dataframe("./test_messages/CAN_DATA/2024-02-28T05-37-47Z.log")
+    # print(df.head)
 
     # message_canverter = CANverter("./dbc/message.dbc")
     # dfsingle = message_canverter.decode_message_stream("(0000282789) X 000000AB#FF00000000000000")
